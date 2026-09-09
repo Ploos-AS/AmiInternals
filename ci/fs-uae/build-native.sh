@@ -59,11 +59,13 @@ compile_tool Mem src/mem/main.c
 compile_tool Tasks src/tasks/main.c
 compile_tool Libs src/libs/main.c
 compile_tool Ports src/ports/main.c
+compile_tool Devices src/devices/main.c
+compile_tool Resources src/resources/main.c
 
 echo 'STEP=validate-output'
 : > "$OUT_DIR/files.txt"
 : > "$OUT_DIR/checksums.sha256"
-for tool in Info Mem Tasks Libs Ports; do
+for tool in Info Mem Tasks Libs Ports Devices Resources; do
   test -s "build/$tool"
   cp "build/$tool" "$OUT_DIR/$tool"
   file "$OUT_DIR/$tool" | tee -a "$OUT_DIR/files.txt"
@@ -74,9 +76,8 @@ for tool in Info Mem Tasks Libs Ports; do
   fi
 done
 
-# Compatibility aliases retained for the existing build workflow.
 cp "$OUT_DIR/files.txt" "$OUT_DIR/file.txt"
 sha256sum "$OUT_DIR/Info" > "$OUT_DIR/Info.sha256"
 
-printf 'STATUS=PASS\nGATE=M0_7_NATIVE_BEBBO_BUILD\nIMAGE=%s\nBINARY_INFO=%s\nBINARY_MEM=%s\nBINARY_TASKS=%s\nBINARY_LIBS=%s\nBINARY_PORTS=%s\n' \
-  "$IMAGE" "$OUT_DIR/Info" "$OUT_DIR/Mem" "$OUT_DIR/Tasks" "$OUT_DIR/Libs" "$OUT_DIR/Ports" | tee "$OUT_DIR/result.txt"
+printf 'STATUS=PASS\nGATE=M0_7_M0_9_NATIVE_BEBBO_BATCH\nIMAGE=%s\nBINARY_INFO=%s\nBINARY_MEM=%s\nBINARY_TASKS=%s\nBINARY_LIBS=%s\nBINARY_PORTS=%s\nBINARY_DEVICES=%s\nBINARY_RESOURCES=%s\n' \
+  "$IMAGE" "$OUT_DIR/Info" "$OUT_DIR/Mem" "$OUT_DIR/Tasks" "$OUT_DIR/Libs" "$OUT_DIR/Ports" "$OUT_DIR/Devices" "$OUT_DIR/Resources" | tee "$OUT_DIR/result.txt"
