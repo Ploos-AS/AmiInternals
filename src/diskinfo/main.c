@@ -5,6 +5,20 @@
 
 static struct InfoData info_data;
 
+static void put_hex32(ULONG value)
+{
+    static const char digits[] = "0123456789ABCDEF";
+    char text[9];
+    int i;
+
+    for (i = 7; i >= 0; --i) {
+        text[i] = digits[value & 0x0f];
+        value >>= 4;
+    }
+    text[8] = '\0';
+    ai_puts(text);
+}
+
 int main(int argc, char **argv)
 {
     STRPTR path = (STRPTR)"";
@@ -39,7 +53,7 @@ int main(int argc, char **argv)
     block_size = info_data.id_BytesPerBlock >= 0 ? (ULONG)info_data.id_BytesPerBlock : 0;
 
     ai_puts("DiskType 0x");
-    ai_put_hex32((ULONG)info_data.id_DiskType);
+    put_hex32((ULONG)info_data.id_DiskType);
     ai_puts("\nBlockSize ");
     ai_put_u32(block_size);
     ai_puts("\nTotalBlocks ");
