@@ -51,11 +51,15 @@ static BPTR find_env_lock(void)
     if (root != 0 && root->rn_Info != 0) {
         info = (struct DosInfo *)BADDR(root->rn_Info);
 
+        /*
+         * Classic DOS keeps assigns in DevInfo, but implementations do not
+         * all expose a directory assign with the same dvi_Type value.  The
+         * stable properties we need are the assign name and a usable lock.
+         */
         Forbid();
         entry = (struct DevInfo *)BADDR(info->di_DevInfo);
         while (entry != 0 && visited < MAX_DOS_ENTRIES) {
-            if (entry->dvi_Type == DLT_DIRECTORY &&
-                entry->dvi_Lock != 0 &&
+            if (entry->dvi_Lock != 0 &&
                 bstr_equals(entry->dvi_Name, "ENV")) {
                 lock = entry->dvi_Lock;
                 break;
