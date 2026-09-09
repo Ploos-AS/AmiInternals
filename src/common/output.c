@@ -36,6 +36,16 @@ void ai_put_u32(ULONG value)
     ai_puts(&buf[i]);
 }
 
+void ai_put_s32(LONG value)
+{
+    if (value < 0) {
+        ai_puts("-");
+        ai_put_u32((ULONG)(-(value + 1)) + 1UL);
+    } else {
+        ai_put_u32((ULONG)value);
+    }
+}
+
 void ai_put_version(UWORD version, UWORD revision)
 {
     ai_put_u32((ULONG)version);
