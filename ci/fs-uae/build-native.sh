@@ -3,12 +3,30 @@ set -euo pipefail
 
 IMAGE="${AMIINTERNALS_BEBBO_IMAGE:-amigadev/m68k-amigaos-gcc@sha256:b18080e6ffca8f793e0f539536a9138e9d2a548ca1a301c7483f43ee15fedfed}"
 OUT_DIR="${1:-build/fs-uae/native}"
-mkdir -p "$OUT_DIR"
+PULL_TIMEOUT="${AMIINTERNALS_DOCKER_PULL_TIMEOUT:-180}"
+BUILD_TIMEOUT="${AMIINTERNALS_DOCKER_BUILD_TIMEOUT:-120}"
+mkdir -p "$OUT_DIR" build
 
-docker pull "$IMAGE"
+printf 'IMAGE=%s\n' "$IMAGE"
+printf 'PULL_TIMEOUT=%ss\n' "$PULL_TIMEOUT"
+printf 'BUILD_TIMEOUT=%ss\n' "$BUILD_TIMEOUT"
+
+echo 'STEP=docker-pull'
+if ! timeout "${PULL_TIMEOUT}s" docker pull "$IMAGE"; then
+  rc=$?
+  echo "ERROR: docker pull failed or timed out (rc=$rc)" >&2
+  exit "$rc"
+fi
+
+echo 'STEP=docker-inspect'
 docker image inspect "$IMAGE" --format '{{join .RepoDigests "\n"}}' | tee "$OUT_DIR/toolchain-image.txt"
 
-docker run --rm \
+echo 'STEP=compiler-version'
+timeout 30s docker run --rm "$IMAGE" m68k-amigaos-gcc --version | tee "$OUT_DIR/compiler-version.txt"
+
+echo 'STEP=native-compile'
+rm -f build/Info
+if ! timeout "${BUILD_TIMEOUT}s" docker run --rm \
   -v "$PWD:/work" \
   -w /work \
   "$IMAGE" \
@@ -19,8 +37,14 @@ docker run --rm \
     src/common/compat.c \
     src/common/output.c \
     src/info/main.c \
-    -noixemul
+    -noixemul; then
+  rc=$?
+  echo "ERROR: native compile failed or timed out (rc=$rc)" >&2
+  exit "$rc"
+fi
 
+echo 'STEP=validate-output'
+test -s build/Info
 cp build/Info "$OUT_DIR/Info"
 file "$OUT_DIR/Info" | tee "$OUT_DIR/file.txt"
 sha256sum "$OUT_DIR/Info" | tee "$OUT_DIR/Info.sha256"
