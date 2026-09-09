@@ -127,6 +127,29 @@ check_tool() {
   fi
 }
 
+check_env_smoke() {
+  local out="$aros_root/amiinternals-env.txt"
+  local rcfile="$aros_root/amiinternals-env-rc.txt"
+  local after="$aros_root/amiinternals-after-env.txt"
+  local rc
+
+  if [[ ! -f "$after" || ! -f "$out" || ! -f "$rcfile" ]]; then
+    echo FAIL
+    return
+  fi
+  if ! grep -q 'Env 0.1' "$out" || ! grep -q 'AmiInternals - Ploos AS' "$out"; then
+    echo FAIL
+    return
+  fi
+
+  rc="$(tr -d '\r\n ' < "$rcfile")"
+  if [[ "$rc" == "0" || "$rc" == "5" ]]; then
+    echo PASS
+  else
+    echo FAIL
+  fi
+}
+
 info_status=$(check_tool info Info 'Exec')
 mem_status=$(check_tool mem Mem 'Largest')
 tasks_status=$(check_tool tasks Tasks 'State Pri Name')
@@ -142,13 +165,13 @@ du_status=$(check_tool du DU 'Bytes Files Dirs Errors Path')
 find_status=$(check_tool find Find 'Matches:')
 which_status=$(check_tool which Which 'SYS:AmiInternalsTest/Info')
 tree_status=$(check_tool tree Tree 'Leaf.txt')
-env_status=$(check_tool env Env 'AMIINTERNALS_TEST=AMIINTERNALS_ENV_VALUE')
+env_status=$(check_env_smoke)
 
 status=FAIL
 observation=guest_tool_failure
 if [[ "$info_status" == PASS && "$mem_status" == PASS && "$tasks_status" == PASS && "$libs_status" == PASS && "$ports_status" == PASS && "$devices_status" == PASS && "$resources_status" == PASS && "$residents_status" == PASS && "$assigns_status" == PASS && "$mounts_status" == PASS && "$df_status" == PASS && "$du_status" == PASS && "$find_status" == PASS && "$which_status" == PASS && "$tree_status" == PASS && "$env_status" == PASS ]]; then
   status=PASS
-  observation=guest_executed_full_m2_4_m2_6_batch
+  observation=guest_executed_full_m2_4_m2_6_batch_env_smoke_only
 fi
 
 {
@@ -173,6 +196,7 @@ fi
   echo "WHICH_STATUS=$which_status"
   echo "TREE_STATUS=$tree_status"
   echo "ENV_STATUS=$env_status"
+  echo "ENV_QUALIFICATION=AROS_SMOKE_ONLY_REAL_ENV_SEMANTICS_DEFERRED_TO_KICKSTART_1_2"
   echo "OBSERVATION=$observation"
   for stage in 0 1; do
     stagefile="$aros_root/amiinternals-env-stage${stage}.txt"
