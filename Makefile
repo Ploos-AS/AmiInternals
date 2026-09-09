@@ -37,8 +37,11 @@ INPUTINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/inputinfo/main.o
 DOCTOR_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/doctor/main.o
 SNAPSHOT_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/snapshot/main.o
 SNAPDIFF_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/snapdiff/main.o
+TIMER_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/timer/main.o
+BENCH_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/bench/main.o
+WATCHTASK_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/watchtask/main.o
 
-TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo doctor snapshot snapdiff
+TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo doctor snapshot snapdiff timer bench watchtask
 
 .PHONY: all clean check-config $(TOOLS)
 all: $(TOOLS)
@@ -81,6 +84,9 @@ inputinfo: $(BUILD_DIR)/InputInfo
 doctor: $(BUILD_DIR)/Doctor
 snapshot: $(BUILD_DIR)/Snapshot
 snapdiff: $(BUILD_DIR)/SnapDiff
+timer: $(BUILD_DIR)/Timer
+bench: $(BUILD_DIR)/Bench
+watchtask: $(BUILD_DIR)/WatchTask
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
@@ -143,6 +149,12 @@ $(BUILD_DIR)/Doctor: $(DOCTOR_OBJS)
 $(BUILD_DIR)/Snapshot: $(SNAPSHOT_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 $(BUILD_DIR)/SnapDiff: $(SNAPDIFF_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/Timer: $(TIMER_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/Bench: $(BENCH_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/WatchTask: $(WATCHTASK_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
