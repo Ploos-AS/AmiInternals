@@ -100,9 +100,9 @@ SYS:AmiInternalsTest/Tree SYS:AmiInternalsTree >SYS:amiinternals-tree.txt
 SYS:C/Echo $RC >SYS:amiinternals-tree-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_TREE=1" >SYS:amiinternals-after-tree.txt
 SYS:C/Echo "ENV_FIXTURE_BEFORE_MAKEDIR=1" >SYS:amiinternals-env-stage0.txt
-SYS:C/MakeDir RAM:Env
+SYS:C/MakeDir SYS:AmiInternalsEnv
 SYS:C/Echo "ENV_FIXTURE_AFTER_MAKEDIR=1" >SYS:amiinternals-env-stage1.txt
-SYS:C/Assign ENV: RAM:Env
+SYS:C/Assign ENV: SYS:AmiInternalsEnv
 SYS:C/Echo "ENV_FIXTURE_AFTER_ASSIGN=1" >SYS:amiinternals-env-stage2.txt
 SYS:C/Echo "AMIINTERNALS_ENV_VALUE" >ENV:AMIINTERNALS_TEST
 SYS:C/Echo "ENV_FIXTURE_AFTER_WRITE=1" >SYS:amiinternals-env-stage3.txt
@@ -114,7 +114,7 @@ SYS:C/Execute SYS:S/Startup-Sequence.amiinternals-original
 EOF
 
 rm -f "$aros_root"/amiinternals-*.txt
-rm -rf "$aros_root/AmiInternalsTree"
+rm -rf "$aros_root/AmiInternalsTree" "$aros_root/AmiInternalsEnv"
 
 config="$OUT_DIR/aros-guest.fs-uae"
 sed "s|@AROS_ROOT@|$PWD/$aros_root|" ci/fs-uae/aros-guest.fs-uae > "$config"
