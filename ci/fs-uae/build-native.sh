@@ -28,20 +28,13 @@ echo 'STEP=compiler-version'
 timeout 30s docker run --rm "$IMAGE" m68k-amigaos-gcc --version | tee "$OUT_DIR/compiler-version.txt"
 
 echo 'STEP=native-compile'
-rm -f build/Info
+rm -f build/Info build/Mem
 set +e
 timeout "${BUILD_TIMEOUT}s" docker run --rm \
   -v "$PWD:/work" \
   -w /work \
   "$IMAGE" \
-  m68k-amigaos-gcc \
-    -Iinclude \
-    -Os -Wall -Wextra -Werror -m68000 -fomit-frame-pointer -noixemul \
-    -o build/Info \
-    src/common/compat.c \
-    src/common/output.c \
-    src/info/main.c \
-    -noixemul
+  sh -lc 'm68k-amigaos-gcc -Iinclude -Os -Wall -Wextra -Werror -m68000 -fomit-frame-pointer -noixemul -o build/Info src/common/compat.c src/common/output.c src/info/main.c -noixemul && m68k-amigaos-gcc -Iinclude -Os -Wall -Wextra -Werror -m68000 -fomit-frame-pointer -noixemul -o build/Mem src/common/compat.c src/common/output.c src/mem/main.c -noixemul'
 rc=$?
 set -e
 if [[ $rc -ne 0 ]]; then
@@ -50,15 +43,22 @@ if [[ $rc -ne 0 ]]; then
 fi
 
 echo 'STEP=validate-output'
-test -s build/Info
-cp build/Info "$OUT_DIR/Info"
-file "$OUT_DIR/Info" | tee "$OUT_DIR/file.txt"
-sha256sum "$OUT_DIR/Info" | tee "$OUT_DIR/Info.sha256"
+: > "$OUT_DIR/files.txt"
+: > "$OUT_DIR/checksums.sha256"
+for tool in Info Mem; do
+  test -s "build/$tool"
+  cp "build/$tool" "$OUT_DIR/$tool"
+  file "$OUT_DIR/$tool" | tee -a "$OUT_DIR/files.txt"
+  sha256sum "$OUT_DIR/$tool" | tee -a "$OUT_DIR/checksums.sha256"
+  if ! file "$OUT_DIR/$tool" | grep -Eiq 'AmigaOS|Amiga.*executable|loadseg'; then
+    echo "ERROR: $tool is not recognized as an Amiga executable" >&2
+    exit 1
+  fi
+done
 
-if ! grep -Eiq 'AmigaOS|Amiga.*executable|loadseg' "$OUT_DIR/file.txt"; then
-  echo "ERROR: native output is not recognized as an Amiga executable" >&2
-  exit 1
-fi
+# Compatibility aliases retained for the existing build workflow.
+cp "$OUT_DIR/files.txt" "$OUT_DIR/file.txt"
+grep 'Info:' "$OUT_DIR/checksums.sha256" > "$OUT_DIR/Info.sha256" || sha256sum "$OUT_DIR/Info" > "$OUT_DIR/Info.sha256"
 
-printf 'STATUS=PASS\nGATE=M0_3_NATIVE_BEBBO_BUILD\nIMAGE=%s\nBINARY=%s\n' \
-  "$IMAGE" "$OUT_DIR/Info" | tee "$OUT_DIR/result.txt"
+printf 'STATUS=PASS\nGATE=M0_4_NATIVE_BEBBO_BUILD\nIMAGE=%s\nBINARY_INFO=%s\nBINARY_MEM=%s\n' \
+  "$IMAGE" "$OUT_DIR/Info" "$OUT_DIR/Mem" | tee "$OUT_DIR/result.txt"
