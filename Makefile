@@ -32,8 +32,10 @@ INTERRUPTS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/interrupts/main.o
 VECTORS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/vectors/main.o
 PATCHES_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/patches/main.o
 ALERTS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/alerts/main.o
+HANDLERS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/handlers/main.o
+INPUTINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/inputinfo/main.o
 
-TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts
+TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo
 
 .PHONY: all clean check-config $(TOOLS)
 all: $(TOOLS)
@@ -71,6 +73,8 @@ interrupts: $(BUILD_DIR)/Interrupts
 vectors: $(BUILD_DIR)/Vectors
 patches: $(BUILD_DIR)/Patches
 alerts: $(BUILD_DIR)/Alerts
+handlers: $(BUILD_DIR)/Handlers
+inputinfo: $(BUILD_DIR)/InputInfo
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
@@ -123,6 +127,10 @@ $(BUILD_DIR)/Vectors: $(VECTORS_OBJS)
 $(BUILD_DIR)/Patches: $(PATCHES_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 $(BUILD_DIR)/Alerts: $(ALERTS_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/Handlers: $(HANDLERS_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/InputInfo: $(INPUTINFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
