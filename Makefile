@@ -34,8 +34,11 @@ PATCHES_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/patches/main.o
 ALERTS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/alerts/main.o
 HANDLERS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/handlers/main.o
 INPUTINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/inputinfo/main.o
+DOCTOR_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/doctor/main.o
+SNAPSHOT_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/snapshot/main.o
+SNAPDIFF_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/snapdiff/main.o
 
-TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo
+TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo doctor snapshot snapdiff
 
 .PHONY: all clean check-config $(TOOLS)
 all: $(TOOLS)
@@ -75,6 +78,9 @@ patches: $(BUILD_DIR)/Patches
 alerts: $(BUILD_DIR)/Alerts
 handlers: $(BUILD_DIR)/Handlers
 inputinfo: $(BUILD_DIR)/InputInfo
+doctor: $(BUILD_DIR)/Doctor
+snapshot: $(BUILD_DIR)/Snapshot
+snapdiff: $(BUILD_DIR)/SnapDiff
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
@@ -131,6 +137,12 @@ $(BUILD_DIR)/Alerts: $(ALERTS_OBJS)
 $(BUILD_DIR)/Handlers: $(HANDLERS_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 $(BUILD_DIR)/InputInfo: $(INPUTINFO_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/Doctor: $(DOCTOR_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/Snapshot: $(SNAPSHOT_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/SnapDiff: $(SNAPDIFF_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
