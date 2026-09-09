@@ -1,0 +1,27 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  m68k-build:
+    runs-on: ubuntu-latest
+    container:
+      image: amigadev/m68k-amigaos-gcc:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          m68k-amigaos-gcc --version
+          make check-config
+      - name: Build Info
+        run: |
+          make clean
+          make info
+          test -s build/Info
+      - name: Inspect binary
+        run: |
+          m68k-amigaos-objdump -f build/Info
+          m68k-amigaos-size build/Info
