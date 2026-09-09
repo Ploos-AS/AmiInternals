@@ -26,10 +26,11 @@ TREE_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/tree/main.o
 ENV_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/env/main.o
 HEAD_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/head/main.o
 TAIL_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/tail/main.o
+HEX_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/hex/main.o
 
-.PHONY: all clean info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail check-config
+.PHONY: all clean info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex check-config
 
-all: info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail
+all: info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex
 
 check-config:
 	@echo "CC=$(CC)"
@@ -56,6 +57,7 @@ tree: $(BUILD_DIR)/Tree
 env: $(BUILD_DIR)/Env
 head: $(BUILD_DIR)/Head
 tail: $(BUILD_DIR)/Tail
+hex: $(BUILD_DIR)/Hex
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(INFO_OBJS)
@@ -93,11 +95,12 @@ $(BUILD_DIR)/Head: $(HEAD_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(HEAD_OBJS)
 $(BUILD_DIR)/Tail: $(TAIL_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(TAIL_OBJS)
+$(BUILD_DIR)/Hex: $(HEX_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(HEX_OBJS)
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
-
 $(BUILD_DIR)/info/%.o: src/info/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
@@ -150,6 +153,9 @@ $(BUILD_DIR)/head/%.o: src/head/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 $(BUILD_DIR)/tail/%.o: src/tail/%.c include/ai_compat.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+$(BUILD_DIR)/hex/%.o: src/hex/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
