@@ -99,9 +99,13 @@ SYS:C/Echo "AMIINTERNALS_BEFORE_TREE=1" >SYS:amiinternals-before-tree.txt
 SYS:AmiInternalsTest/Tree SYS:AmiInternalsTree >SYS:amiinternals-tree.txt
 SYS:C/Echo $RC >SYS:amiinternals-tree-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_TREE=1" >SYS:amiinternals-after-tree.txt
+SYS:C/Echo "ENV_FIXTURE_BEFORE_MAKEDIR=1" >SYS:amiinternals-env-stage0.txt
 SYS:C/MakeDir RAM:Env
+SYS:C/Echo "ENV_FIXTURE_AFTER_MAKEDIR=1" >SYS:amiinternals-env-stage1.txt
 SYS:C/Assign ENV: RAM:Env
+SYS:C/Echo "ENV_FIXTURE_AFTER_ASSIGN=1" >SYS:amiinternals-env-stage2.txt
 SYS:C/Echo "AMIINTERNALS_ENV_VALUE" >ENV:AMIINTERNALS_TEST
+SYS:C/Echo "ENV_FIXTURE_AFTER_WRITE=1" >SYS:amiinternals-env-stage3.txt
 SYS:C/Echo "AMIINTERNALS_BEFORE_ENV=1" >SYS:amiinternals-before-env.txt
 SYS:AmiInternalsTest/Env AMIINTERNALS_TEST >SYS:amiinternals-env.txt
 SYS:C/Echo $RC >SYS:amiinternals-env-rc.txt
@@ -189,6 +193,14 @@ fi
   echo "TREE_STATUS=$tree_status"
   echo "ENV_STATUS=$env_status"
   echo "OBSERVATION=$observation"
+  for stage in 0 1 2 3; do
+    stagefile="$aros_root/amiinternals-env-stage${stage}.txt"
+    if [[ -f "$stagefile" ]]; then
+      tr -d '\r' < "$stagefile" | sed "s/^/ENV_STAGE${stage}=/"
+    else
+      echo "ENV_STAGE${stage}=MISSING"
+    fi
+  done
   for key in info mem tasks libs ports devices resources residents assigns mounts df du find which tree env; do
     rcfile="$aros_root/amiinternals-$key-rc.txt"
     outfile="$aros_root/amiinternals-$key.txt"
