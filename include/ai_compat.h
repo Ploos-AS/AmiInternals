@@ -17,6 +17,7 @@ struct AIExecInfo {
 void ai_get_exec_info(struct AIExecInfo *info);
 void ai_puts(const char *text);
 void ai_put_u32(ULONG value);
+void ai_put_s32(LONG value);
 void ai_put_version(UWORD version, UWORD revision);
 
 #endif
