@@ -1,7 +1,7 @@
 CC ?= m68k-amigaos-gcc
-CFLAGS ?= -O2 -Wall -Wextra -m68000 -fomit-frame-pointer
+CFLAGS ?= -O2 -Wall -Wextra -m68000 -fomit-frame-pointer -noixemul
 CPPFLAGS ?= -Iinclude
-LDFLAGS ?= -m68000
+LDFLAGS ?= -m68000 -noixemul
 
 BUILD_DIR := build
 COMMON_OBJS := \
@@ -17,7 +17,9 @@ all: info
 check-config:
 	@echo "CC=$(CC)"
 	@echo "CFLAGS=$(CFLAGS)"
+	@echo "LDFLAGS=$(LDFLAGS)"
 	@echo "Target baseline: Motorola 68000 / AmigaOS 1.2+"
+	@echo "Runtime qualification for Kickstart 1.2 is still required."
 
 info: $(BUILD_DIR)/Info
 
