@@ -5,7 +5,7 @@ OUT_DIR="${1:-build/fs-uae/aros-guest}"
 SYSTEM_DIR="build/fs-uae/aros-system"
 mkdir -p "$OUT_DIR"
 
-TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env)
+TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env Head Tail Hex)
 for tool in "${TOOLS[@]}"; do
   if [[ ! -f "build/fs-uae/native/$tool" ]]; then
     echo "ERROR: native $tool binary missing; run build-native.sh first" >&2
@@ -37,6 +37,8 @@ env_dir="$aros_root/AmiInternalsEnv"
 rm -rf "$env_dir"
 mkdir -p "$env_dir"
 printf 'AMIINTERNALS_ENV_VALUE\n' > "$env_dir/AMIINTERNALS_TEST"
+printf 'line01\nline02\nline03\nline04\nline05\nline06\nline07\nline08\nline09\nline10\nline11\nline12\n' > "$aros_root/AmiInternalsText.txt"
+printf '\x00\x41\x42\x7f\xff\n' > "$aros_root/AmiInternalsHex.bin"
 
 cp "$startup" "$startup.amiinternals-original"
 
@@ -91,13 +93,20 @@ SYS:AmiInternalsTest/Tree SYS:AmiInternalsTree >SYS:amiinternals-tree.txt
 SYS:C/Echo $RC >SYS:amiinternals-tree-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_TREE=1" >SYS:amiinternals-after-tree.txt
 SYS:C/Echo "ENV_FIXTURE_BEFORE_ASSIGN=1" >SYS:amiinternals-env-stage0.txt
-SYS:AmiInternalsTest/Assigns >SYS:amiinternals-assigns-before-env.txt
 SYS:C/Assign ENV: SYS:AmiInternalsEnv
 SYS:C/Echo "ENV_FIXTURE_AFTER_ASSIGN=1" >SYS:amiinternals-env-stage1.txt
-SYS:AmiInternalsTest/Assigns >SYS:amiinternals-assigns-after-env.txt
 SYS:AmiInternalsTest/Env AMIINTERNALS_TEST >SYS:amiinternals-env.txt
 SYS:C/Echo $RC >SYS:amiinternals-env-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_ENV=1" >SYS:amiinternals-after-env.txt
+SYS:AmiInternalsTest/Head SYS:AmiInternalsText.txt 2 >SYS:amiinternals-head.txt
+SYS:C/Echo $RC >SYS:amiinternals-head-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_HEAD=1" >SYS:amiinternals-after-head.txt
+SYS:AmiInternalsTest/Tail SYS:AmiInternalsText.txt 2 >SYS:amiinternals-tail.txt
+SYS:C/Echo $RC >SYS:amiinternals-tail-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_TAIL=1" >SYS:amiinternals-after-tail.txt
+SYS:AmiInternalsTest/Hex SYS:AmiInternalsHex.bin >SYS:amiinternals-hex.txt
+SYS:C/Echo $RC >SYS:amiinternals-hex-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_HEX=1" >SYS:amiinternals-after-hex.txt
 SYS:C/Execute SYS:S/Startup-Sequence.amiinternals-original
 EOF
 
@@ -114,40 +123,33 @@ fs_rc=$?
 set -e
 
 check_tool() {
-  local key="$1"
-  local title="$2"
-  local marker="$3"
+  local key="$1" title="$2" marker="$3"
   local out="$aros_root/amiinternals-$key.txt"
   local after="$aros_root/amiinternals-after-$key.txt"
-
-  if [[ -f "$after" && -f "$out" ]] && grep -q "$title 0.1" "$out" && grep -q 'AmiInternals - Ploos AS' "$out" && grep -q "$marker" "$out"; then
-    echo PASS
-  else
-    echo FAIL
-  fi
+  if [[ -f "$after" && -f "$out" ]] && grep -q "$title 0.1" "$out" && grep -q 'AmiInternals - Ploos AS' "$out" && grep -q "$marker" "$out"; then echo PASS; else echo FAIL; fi
 }
 
 check_env_smoke() {
-  local out="$aros_root/amiinternals-env.txt"
-  local rcfile="$aros_root/amiinternals-env-rc.txt"
-  local after="$aros_root/amiinternals-after-env.txt"
-  local rc
-
-  if [[ ! -f "$after" || ! -f "$out" || ! -f "$rcfile" ]]; then
-    echo FAIL
-    return
-  fi
-  if ! grep -q 'Env 0.1' "$out" || ! grep -q 'AmiInternals - Ploos AS' "$out"; then
-    echo FAIL
-    return
-  fi
-
+  local out="$aros_root/amiinternals-env.txt" rcfile="$aros_root/amiinternals-env-rc.txt" after="$aros_root/amiinternals-after-env.txt" rc
+  if [[ ! -f "$after" || ! -f "$out" || ! -f "$rcfile" ]]; then echo FAIL; return; fi
+  if ! grep -q 'Env 0.1' "$out" || ! grep -q 'AmiInternals - Ploos AS' "$out"; then echo FAIL; return; fi
   rc="$(tr -d '\r\n ' < "$rcfile")"
-  if [[ "$rc" == "0" || "$rc" == "5" ]]; then
-    echo PASS
-  else
-    echo FAIL
-  fi
+  if [[ "$rc" == "0" || "$rc" == "5" ]]; then echo PASS; else echo FAIL; fi
+}
+
+check_head() {
+  local out="$aros_root/amiinternals-head.txt"
+  if [[ -f "$aros_root/amiinternals-after-head.txt" && -f "$out" ]] && grep -q 'Head 0.1' "$out" && grep -q '^line01' "$out" && grep -q '^line02' "$out" && ! grep -q '^line03' "$out"; then echo PASS; else echo FAIL; fi
+}
+
+check_tail() {
+  local out="$aros_root/amiinternals-tail.txt"
+  if [[ -f "$aros_root/amiinternals-after-tail.txt" && -f "$out" ]] && grep -q 'Tail 0.1' "$out" && grep -q '^line11' "$out" && grep -q '^line12' "$out" && ! grep -q '^line10' "$out"; then echo PASS; else echo FAIL; fi
+}
+
+check_hex() {
+  local out="$aros_root/amiinternals-hex.txt"
+  if [[ -f "$aros_root/amiinternals-after-hex.txt" && -f "$out" ]] && grep -q 'Hex 0.1' "$out" && grep -q '00 41 42 7F FF' "$out" && grep -q '\.AB\.\.' "$out"; then echo PASS; else echo FAIL; fi
 }
 
 info_status=$(check_tool info Info 'Exec')
@@ -166,51 +168,27 @@ find_status=$(check_tool find Find 'Matches:')
 which_status=$(check_tool which Which 'SYS:AmiInternalsTest/Info')
 tree_status=$(check_tool tree Tree 'Leaf.txt')
 env_status=$(check_env_smoke)
+head_status=$(check_head)
+tail_status=$(check_tail)
+hex_status=$(check_hex)
 
 status=FAIL
 observation=guest_tool_failure
-if [[ "$info_status" == PASS && "$mem_status" == PASS && "$tasks_status" == PASS && "$libs_status" == PASS && "$ports_status" == PASS && "$devices_status" == PASS && "$resources_status" == PASS && "$residents_status" == PASS && "$assigns_status" == PASS && "$mounts_status" == PASS && "$df_status" == PASS && "$du_status" == PASS && "$find_status" == PASS && "$which_status" == PASS && "$tree_status" == PASS && "$env_status" == PASS ]]; then
+if [[ "$info_status" == PASS && "$mem_status" == PASS && "$tasks_status" == PASS && "$libs_status" == PASS && "$ports_status" == PASS && "$devices_status" == PASS && "$resources_status" == PASS && "$residents_status" == PASS && "$assigns_status" == PASS && "$mounts_status" == PASS && "$df_status" == PASS && "$du_status" == PASS && "$find_status" == PASS && "$which_status" == PASS && "$tree_status" == PASS && "$env_status" == PASS && "$head_status" == PASS && "$tail_status" == PASS && "$hex_status" == PASS ]]; then
   status=PASS
-  observation=guest_executed_full_m2_4_m2_6_batch_env_smoke_only
+  observation=guest_executed_full_m2_7_m2_9_batch_env_smoke_only
 fi
 
 {
   echo "STATUS=$status"
-  echo "GATE=M2_4_M2_6_AROS_GUEST_BATCH"
+  echo "GATE=M2_7_M2_9_AROS_GUEST_BATCH"
   echo "MODEL=A1200"
   echo "KICKSTART=internal"
   echo "FS_UAE_EXIT=$fs_rc"
-  echo "INFO_STATUS=$info_status"
-  echo "MEM_STATUS=$mem_status"
-  echo "TASKS_STATUS=$tasks_status"
-  echo "LIBS_STATUS=$libs_status"
-  echo "PORTS_STATUS=$ports_status"
-  echo "DEVICES_STATUS=$devices_status"
-  echo "RESOURCES_STATUS=$resources_status"
-  echo "RESIDENTS_STATUS=$residents_status"
-  echo "ASSIGNS_STATUS=$assigns_status"
-  echo "MOUNTS_STATUS=$mounts_status"
-  echo "DF_STATUS=$df_status"
-  echo "DU_STATUS=$du_status"
-  echo "FIND_STATUS=$find_status"
-  echo "WHICH_STATUS=$which_status"
-  echo "TREE_STATUS=$tree_status"
-  echo "ENV_STATUS=$env_status"
+  for pair in "INFO:$info_status" "MEM:$mem_status" "TASKS:$tasks_status" "LIBS:$libs_status" "PORTS:$ports_status" "DEVICES:$devices_status" "RESOURCES:$resources_status" "RESIDENTS:$residents_status" "ASSIGNS:$assigns_status" "MOUNTS:$mounts_status" "DF:$df_status" "DU:$du_status" "FIND:$find_status" "WHICH:$which_status" "TREE:$tree_status" "ENV:$env_status" "HEAD:$head_status" "TAIL:$tail_status" "HEX:$hex_status"; do echo "${pair%%:*}_STATUS=${pair#*:}"; done
   echo "ENV_QUALIFICATION=AROS_SMOKE_ONLY_REAL_ENV_SEMANTICS_DEFERRED_TO_KICKSTART_1_2"
   echo "OBSERVATION=$observation"
-  for stage in 0 1; do
-    stagefile="$aros_root/amiinternals-env-stage${stage}.txt"
-    if [[ -f "$stagefile" ]]; then
-      tr -d '\r' < "$stagefile" | sed "s/^/ENV_STAGE${stage}=/"
-    else
-      echo "ENV_STAGE${stage}=MISSING"
-    fi
-  done
-  for dump in before-env after-env; do
-    f="$aros_root/amiinternals-assigns-$dump.txt"
-    if [[ -f "$f" ]]; then tr -d '\r' < "$f" | sed "s/^/ASSIGNS_${dump^^}=/"; fi
-  done
-  for key in info mem tasks libs ports devices resources residents assigns mounts df du find which tree env; do
+  for key in info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex; do
     rcfile="$aros_root/amiinternals-$key-rc.txt"
     outfile="$aros_root/amiinternals-$key.txt"
     upper=$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]')
