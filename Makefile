@@ -19,10 +19,11 @@ RESIDENTS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/residents/main.o
 ASSIGNS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/assigns/main.o
 MOUNTS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/mounts/main.o
 DF_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/df/main.o
+DU_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/du/main.o
 
-.PHONY: all clean info mem tasks libs ports devices resources residents assigns mounts df check-config
+.PHONY: all clean info mem tasks libs ports devices resources residents assigns mounts df du check-config
 
-all: info mem tasks libs ports devices resources residents assigns mounts df
+all: info mem tasks libs ports devices resources residents assigns mounts df du
 
 check-config:
 	@echo "CC=$(CC)"
@@ -42,6 +43,7 @@ residents: $(BUILD_DIR)/Residents
 assigns: $(BUILD_DIR)/Assigns
 mounts: $(BUILD_DIR)/Mounts
 df: $(BUILD_DIR)/DF
+du: $(BUILD_DIR)/DU
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(INFO_OBJS)
@@ -75,6 +77,9 @@ $(BUILD_DIR)/Mounts: $(MOUNTS_OBJS)
 
 $(BUILD_DIR)/DF: $(DF_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(DF_OBJS)
+
+$(BUILD_DIR)/DU: $(DU_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(DU_OBJS)
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
@@ -121,6 +126,10 @@ $(BUILD_DIR)/mounts/%.o: src/mounts/%.c include/ai_compat.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/df/%.o: src/df/%.c include/ai_compat.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/du/%.o: src/du/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
