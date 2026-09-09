@@ -46,7 +46,7 @@ awk '
   print
   if (!done) {
     lower = tolower($0)
-    if (lower ~ /assign[[:space:]]+env:/) {
+    if (lower ~ /assign[[:space:]]+"?env:"?/) {
       print "SYS:C/Echo \"AMIINTERNALS_ENV_VALUE\" >ENV:AMIINTERNALS_TEST"
       print "SYS:C/Echo \"AMIINTERNALS_BEFORE_ENV=1\" >SYS:amiinternals-before-env.txt"
       print "SYS:AmiInternalsTest/Env AMIINTERNALS_TEST >SYS:amiinternals-env.txt"
