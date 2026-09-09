@@ -58,11 +58,12 @@ compile_tool Info src/info/main.c
 compile_tool Mem src/mem/main.c
 compile_tool Tasks src/tasks/main.c
 compile_tool Libs src/libs/main.c
+compile_tool Ports src/ports/main.c
 
 echo 'STEP=validate-output'
 : > "$OUT_DIR/files.txt"
 : > "$OUT_DIR/checksums.sha256"
-for tool in Info Mem Tasks Libs; do
+for tool in Info Mem Tasks Libs Ports; do
   test -s "build/$tool"
   cp "build/$tool" "$OUT_DIR/$tool"
   file "$OUT_DIR/$tool" | tee -a "$OUT_DIR/files.txt"
@@ -77,5 +78,5 @@ done
 cp "$OUT_DIR/files.txt" "$OUT_DIR/file.txt"
 sha256sum "$OUT_DIR/Info" > "$OUT_DIR/Info.sha256"
 
-printf 'STATUS=PASS\nGATE=M0_6_NATIVE_BEBBO_BUILD\nIMAGE=%s\nBINARY_INFO=%s\nBINARY_MEM=%s\nBINARY_TASKS=%s\nBINARY_LIBS=%s\n' \
-  "$IMAGE" "$OUT_DIR/Info" "$OUT_DIR/Mem" "$OUT_DIR/Tasks" "$OUT_DIR/Libs" | tee "$OUT_DIR/result.txt"
+printf 'STATUS=PASS\nGATE=M0_7_NATIVE_BEBBO_BUILD\nIMAGE=%s\nBINARY_INFO=%s\nBINARY_MEM=%s\nBINARY_TASKS=%s\nBINARY_LIBS=%s\nBINARY_PORTS=%s\n' \
+  "$IMAGE" "$OUT_DIR/Info" "$OUT_DIR/Mem" "$OUT_DIR/Tasks" "$OUT_DIR/Libs" "$OUT_DIR/Ports" | tee "$OUT_DIR/result.txt"
