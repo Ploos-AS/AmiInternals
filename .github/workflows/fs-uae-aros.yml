@@ -33,6 +33,9 @@ jobs:
       - name: Gate 4 - execute M3 batch 2 inside AROS guest
         run: bash ci/fs-uae/run-m3-batch2-smoke.sh
 
+      - name: Gate 5 - execute M3 batch 3 inside AROS guest
+        run: bash ci/fs-uae/run-m3-batch3-smoke.sh
+
       - name: Upload qualification evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -46,6 +49,8 @@ jobs:
             build/fs-uae/native/Vectors
             build/fs-uae/native/Patches
             build/fs-uae/native/Alerts
+            build/fs-uae/native/Handlers
+            build/fs-uae/native/InputInfo
             build/fs-uae/native/Info.sha256
             build/fs-uae/native/file.txt
             build/fs-uae/native/result.txt
@@ -64,4 +69,8 @@ jobs:
             build/fs-uae/m3-batch2/fs-uae.log
             build/fs-uae/m3-batch2/fs-uae-version.txt
             build/fs-uae/m3-batch2/aros-guest.fs-uae
+            build/fs-uae/m3-batch3/result.txt
+            build/fs-uae/m3-batch3/fs-uae.log
+            build/fs-uae/m3-batch3/fs-uae-version.txt
+            build/fs-uae/m3-batch3/aros-guest.fs-uae
           if-no-files-found: warn
