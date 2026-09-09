@@ -76,7 +76,7 @@ int main(int argc, char **argv)
     ULONG offset = 0;
     ULONG limit = 0;
     ULONG shown = 0;
-    LONG got;
+    LONG got = 0;
 
     ai_puts("Hex 0.1\nAmiInternals - Ploos AS\n\n");
     if (argc < 2 || argc > 4) {
