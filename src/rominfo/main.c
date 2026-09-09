@@ -3,6 +3,20 @@
 
 #include "ai_compat.h"
 
+static void put_hex32(ULONG value)
+{
+    static const char digits[] = "0123456789ABCDEF";
+    char out[9];
+    int shift;
+    int i = 0;
+
+    for (shift = 28; shift >= 0; shift -= 4) {
+        out[i++] = digits[(value >> shift) & 0x0FUL];
+    }
+    out[i] = '\0';
+    ai_puts(out);
+}
+
 int main(void)
 {
     struct Resident *resident;
@@ -15,11 +29,11 @@ int main(void)
     }
 
     ai_puts("Resident 0x");
-    ai_put_hex32((ULONG)resident);
+    put_hex32((ULONG)resident);
     ai_puts("\nVersion ");
     ai_put_u32((ULONG)resident->rt_Version);
     ai_puts("\nFlags 0x");
-    ai_put_hex32((ULONG)resident->rt_Flags);
+    put_hex32((ULONG)resident->rt_Flags);
     ai_puts("\nType ");
     ai_put_u32((ULONG)resident->rt_Type);
     ai_puts("\nPriority ");
