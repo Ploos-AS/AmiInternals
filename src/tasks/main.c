@@ -14,6 +14,8 @@ struct TaskRow {
     char name[TASK_NAME_LEN];
 };
 
+static struct TaskRow rows[MAX_TASKS];
+
 static void copy_name(char *dst, const char *src)
 {
     int i = 0;
@@ -29,7 +31,7 @@ static void copy_name(char *dst, const char *src)
     dst[i] = '\0';
 }
 
-static void add_task(struct TaskRow *rows, int *count, struct Task *task, char state)
+static void add_task(int *count, struct Task *task, char state)
 {
     if (task == 0 || *count >= MAX_TASKS) {
         return;
@@ -41,12 +43,12 @@ static void add_task(struct TaskRow *rows, int *count, struct Task *task, char s
     ++(*count);
 }
 
-static void add_list(struct TaskRow *rows, int *count, struct List *list, char state)
+static void add_list(int *count, struct List *list, char state)
 {
     struct Node *node;
 
     for (node = list->lh_Head; node != 0 && node->ln_Succ != 0; node = node->ln_Succ) {
-        add_task(rows, count, (struct Task *)node, state);
+        add_task(count, (struct Task *)node, state);
         if (*count >= MAX_TASKS) {
             break;
         }
@@ -67,14 +69,13 @@ static const char *state_name(char state)
 int main(void)
 {
     struct ExecBase *sysbase = *(struct ExecBase **)4;
-    struct TaskRow rows[MAX_TASKS];
     int count = 0;
     int i;
 
     Forbid();
-    add_task(rows, &count, sysbase->ThisTask, 'R');
-    add_list(rows, &count, &sysbase->TaskReady, 'r');
-    add_list(rows, &count, &sysbase->TaskWait, 'w');
+    add_task(&count, sysbase->ThisTask, 'R');
+    add_list(&count, &sysbase->TaskReady, 'r');
+    add_list(&count, &sysbase->TaskWait, 'w');
     Permit();
 
     ai_puts("Tasks 0.1\n");
