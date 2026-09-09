@@ -9,10 +9,11 @@ COMMON_OBJS := \
 	$(BUILD_DIR)/common/output.o
 
 INFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/info/main.o
+MEM_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/mem/main.o
 
-.PHONY: all clean info check-config
+.PHONY: all clean info mem check-config
 
-all: info
+all: info mem
 
 check-config:
 	@echo "CC=$(CC)"
@@ -22,15 +23,23 @@ check-config:
 	@echo "Runtime qualification for Kickstart 1.2 is still required."
 
 info: $(BUILD_DIR)/Info
+mem: $(BUILD_DIR)/Mem
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(INFO_OBJS)
+
+$(BUILD_DIR)/Mem: $(MEM_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(MEM_OBJS)
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/info/%.o: src/info/%.c include/ai_compat.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/mem/%.o: src/mem/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
