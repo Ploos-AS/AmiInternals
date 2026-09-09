@@ -6,6 +6,16 @@ AROS_TARGET="amiga-m68k-boot-iso"
 OUT_DIR="${1:-build/fs-uae/aros-system}"
 
 mkdir -p "$OUT_DIR"
+
+# The runtime qualification gates run sequentially in the same Actions job.
+# Reuse the already resolved/extracted ISO instead of downloading the ~109 MB
+# nightly for every gate. A fresh job still resolves the current nightly once.
+if [[ -s "$OUT_DIR/system.iso" && -s "$OUT_DIR/source.txt" ]]; then
+  echo "Reusing cached AROS system image: $OUT_DIR/system.iso" >&2
+  echo "$OUT_DIR/system.iso"
+  exit 0
+fi
+
 index_html="$OUT_DIR/aros-nightly-index.html"
 
 curl --fail --location --retry 3 --retry-delay 2 "$AROS_INDEX_URL" -o "$index_html"
