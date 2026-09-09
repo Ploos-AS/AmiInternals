@@ -44,31 +44,16 @@ compile_tool() {
   fi
 }
 
-compile_tool Info src/info/main.c
-compile_tool Mem src/mem/main.c
-compile_tool Tasks src/tasks/main.c
-compile_tool Libs src/libs/main.c
-compile_tool Ports src/ports/main.c
-compile_tool Devices src/devices/main.c
-compile_tool Resources src/resources/main.c
-compile_tool Residents src/residents/main.c
-compile_tool Assigns src/assigns/main.c
-compile_tool Mounts src/mounts/main.c
-compile_tool DF src/df/main.c
-compile_tool DU src/du/main.c
-compile_tool Find src/find/main.c
-compile_tool Which src/which/main.c
-compile_tool Tree src/tree/main.c
-compile_tool Env src/env/main.c
-compile_tool Head src/head/main.c
-compile_tool Tail src/tail/main.c
-compile_tool Hex src/hex/main.c
-compile_tool Strings src/strings/main.c
+TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env Head Tail Hex Strings TaskInfo ExecInfo Interrupts)
+SOURCES=(src/info/main.c src/mem/main.c src/tasks/main.c src/libs/main.c src/ports/main.c src/devices/main.c src/resources/main.c src/residents/main.c src/assigns/main.c src/mounts/main.c src/df/main.c src/du/main.c src/find/main.c src/which/main.c src/tree/main.c src/env/main.c src/head/main.c src/tail/main.c src/hex/main.c src/strings/main.c src/taskinfo/main.c src/execinfo/main.c src/interrupts/main.c)
+
+for i in "${!TOOLS[@]}"; do
+  compile_tool "${TOOLS[$i]}" "${SOURCES[$i]}"
+done
 
 echo 'STEP=validate-output'
 : > "$OUT_DIR/files.txt"
 : > "$OUT_DIR/checksums.sha256"
-TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env Head Tail Hex Strings)
 for tool in "${TOOLS[@]}"; do
   test -s "build/$tool"
   cp "build/$tool" "$OUT_DIR/$tool"
@@ -85,7 +70,7 @@ sha256sum "$OUT_DIR/Info" > "$OUT_DIR/Info.sha256"
 
 {
   echo 'STATUS=PASS'
-  echo 'GATE=M2_10_NATIVE_BEBBO_M2_COMPLETE'
+  echo 'GATE=M3_BATCH1_NATIVE_BEBBO'
   echo "IMAGE=$IMAGE"
   for tool in "${TOOLS[@]}"; do echo "BINARY_${tool^^}=$OUT_DIR/$tool"; done
 } | tee "$OUT_DIR/result.txt"
