@@ -18,7 +18,14 @@ jobs:
 
       - name: Install FS-UAE runtime tools
         run: |
-          sudo apt-get update
+          # Chrome is preconfigured on GitHub-hosted runners but is unrelated to
+          # AmiInternals qualification. Its rapidly changing package index can
+          # transiently produce Hash Sum mismatch and prevent Ubuntu packages
+          # from being installed, so keep this job isolated from that repo.
+          sudo rm -f \
+            /etc/apt/sources.list.d/google-chrome.list \
+            /etc/apt/sources.list.d/google-chrome.sources
+          sudo apt-get update -o Acquire::Retries=3
           sudo apt-get install -y fs-uae xvfb curl lhasa file p7zip-full unzip
 
       - name: Gate 1 - native 68000 build
