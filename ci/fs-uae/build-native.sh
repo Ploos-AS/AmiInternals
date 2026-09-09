@@ -67,11 +67,14 @@ compile_tool Mounts src/mounts/main.c
 compile_tool DF src/df/main.c
 compile_tool DU src/du/main.c
 compile_tool Find src/find/main.c
+compile_tool Which src/which/main.c
+compile_tool Tree src/tree/main.c
+compile_tool Env src/env/main.c
 
 echo 'STEP=validate-output'
 : > "$OUT_DIR/files.txt"
 : > "$OUT_DIR/checksums.sha256"
-for tool in Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find; do
+for tool in Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env; do
   test -s "build/$tool"
   cp "build/$tool" "$OUT_DIR/$tool"
   file "$OUT_DIR/$tool" | tee -a "$OUT_DIR/files.txt"
@@ -85,5 +88,5 @@ done
 cp "$OUT_DIR/files.txt" "$OUT_DIR/file.txt"
 sha256sum "$OUT_DIR/Info" > "$OUT_DIR/Info.sha256"
 
-printf 'STATUS=PASS\nGATE=M2_1_M2_3_NATIVE_BEBBO_BATCH\nIMAGE=%s\nBINARY_INFO=%s\nBINARY_MEM=%s\nBINARY_TASKS=%s\nBINARY_LIBS=%s\nBINARY_PORTS=%s\nBINARY_DEVICES=%s\nBINARY_RESOURCES=%s\nBINARY_RESIDENTS=%s\nBINARY_ASSIGNS=%s\nBINARY_MOUNTS=%s\nBINARY_DF=%s\nBINARY_DU=%s\nBINARY_FIND=%s\n' \
-  "$IMAGE" "$OUT_DIR/Info" "$OUT_DIR/Mem" "$OUT_DIR/Tasks" "$OUT_DIR/Libs" "$OUT_DIR/Ports" "$OUT_DIR/Devices" "$OUT_DIR/Resources" "$OUT_DIR/Residents" "$OUT_DIR/Assigns" "$OUT_DIR/Mounts" "$OUT_DIR/DF" "$OUT_DIR/DU" "$OUT_DIR/Find" | tee "$OUT_DIR/result.txt"
+printf 'STATUS=PASS\nGATE=M2_4_M2_6_NATIVE_BEBBO_BATCH\nIMAGE=%s\nBINARY_INFO=%s\nBINARY_MEM=%s\nBINARY_TASKS=%s\nBINARY_LIBS=%s\nBINARY_PORTS=%s\nBINARY_DEVICES=%s\nBINARY_RESOURCES=%s\nBINARY_RESIDENTS=%s\nBINARY_ASSIGNS=%s\nBINARY_MOUNTS=%s\nBINARY_DF=%s\nBINARY_DU=%s\nBINARY_FIND=%s\nBINARY_WHICH=%s\nBINARY_TREE=%s\nBINARY_ENV=%s\n' \
+  "$IMAGE" "$OUT_DIR/Info" "$OUT_DIR/Mem" "$OUT_DIR/Tasks" "$OUT_DIR/Libs" "$OUT_DIR/Ports" "$OUT_DIR/Devices" "$OUT_DIR/Resources" "$OUT_DIR/Residents" "$OUT_DIR/Assigns" "$OUT_DIR/Mounts" "$OUT_DIR/DF" "$OUT_DIR/DU" "$OUT_DIR/Find" "$OUT_DIR/Which" "$OUT_DIR/Tree" "$OUT_DIR/Env" | tee "$OUT_DIR/result.txt"
