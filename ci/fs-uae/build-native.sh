@@ -12,8 +12,11 @@ printf 'PULL_TIMEOUT=%ss\n' "$PULL_TIMEOUT"
 printf 'BUILD_TIMEOUT=%ss\n' "$BUILD_TIMEOUT"
 
 echo 'STEP=docker-pull'
-if ! timeout "${PULL_TIMEOUT}s" docker pull "$IMAGE"; then
-  rc=$?
+set +e
+timeout "${PULL_TIMEOUT}s" docker pull "$IMAGE"
+rc=$?
+set -e
+if [[ $rc -ne 0 ]]; then
   echo "ERROR: docker pull failed or timed out (rc=$rc)" >&2
   exit "$rc"
 fi
@@ -26,7 +29,8 @@ timeout 30s docker run --rm "$IMAGE" m68k-amigaos-gcc --version | tee "$OUT_DIR/
 
 echo 'STEP=native-compile'
 rm -f build/Info
-if ! timeout "${BUILD_TIMEOUT}s" docker run --rm \
+set +e
+timeout "${BUILD_TIMEOUT}s" docker run --rm \
   -v "$PWD:/work" \
   -w /work \
   "$IMAGE" \
@@ -37,8 +41,10 @@ if ! timeout "${BUILD_TIMEOUT}s" docker run --rm \
     src/common/compat.c \
     src/common/output.c \
     src/info/main.c \
-    -noixemul; then
-  rc=$?
+    -noixemul
+rc=$?
+set -e
+if [[ $rc -ne 0 ]]; then
   echo "ERROR: native compile failed or timed out (rc=$rc)" >&2
   exit "$rc"
 fi
