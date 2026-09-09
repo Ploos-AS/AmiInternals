@@ -14,6 +14,8 @@ struct LibRow {
     char name[LIB_NAME_LEN];
 };
 
+static struct LibRow rows[MAX_LIBS];
+
 static void copy_name(char *dst, const char *src)
 {
     int i = 0;
@@ -32,7 +34,6 @@ static void copy_name(char *dst, const char *src)
 int main(void)
 {
     struct ExecBase *sysbase = *(struct ExecBase **)4;
-    struct LibRow rows[MAX_LIBS];
     struct Node *node;
     int count = 0;
     int i;
