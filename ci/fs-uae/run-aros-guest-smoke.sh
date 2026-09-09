@@ -5,7 +5,8 @@ OUT_DIR="${1:-build/fs-uae/aros-guest}"
 SYSTEM_DIR="build/fs-uae/aros-system"
 mkdir -p "$OUT_DIR"
 
-for tool in Info Mem Tasks Libs Ports; do
+TOOLS=(Info Mem Tasks Libs Ports Devices Resources)
+for tool in "${TOOLS[@]}"; do
   if [[ ! -f "build/fs-uae/native/$tool" ]]; then
     echo "ERROR: native $tool binary missing; run build-native.sh first" >&2
     exit 1
@@ -25,7 +26,7 @@ if [[ -z "$startup" ]]; then
 fi
 
 aros_root="$(dirname "$(dirname "$startup")")"
-for tool in Info Mem Tasks Libs Ports; do
+for tool in "${TOOLS[@]}"; do
   cp "build/fs-uae/native/$tool" "$aros_root/$tool"
 done
 cp "$startup" "$startup.amiinternals-original"
@@ -52,6 +53,14 @@ SYS:C/Echo "AMIINTERNALS_BEFORE_PORTS=1" >SYS:amiinternals-before-ports.txt
 SYS:Ports >SYS:amiinternals-ports.txt
 SYS:C/Echo $RC >SYS:amiinternals-ports-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_PORTS=1" >SYS:amiinternals-after-ports.txt
+SYS:C/Echo "AMIINTERNALS_BEFORE_DEVICES=1" >SYS:amiinternals-before-devices.txt
+SYS:Devices >SYS:amiinternals-devices.txt
+SYS:C/Echo $RC >SYS:amiinternals-devices-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_DEVICES=1" >SYS:amiinternals-after-devices.txt
+SYS:C/Echo "AMIINTERNALS_BEFORE_RESOURCES=1" >SYS:amiinternals-before-resources.txt
+SYS:Resources >SYS:amiinternals-resources.txt
+SYS:C/Echo $RC >SYS:amiinternals-resources-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_RESOURCES=1" >SYS:amiinternals-after-resources.txt
 SYS:C/Execute SYS:S/Startup-Sequence.amiinternals-original
 EOF
 
@@ -66,63 +75,45 @@ timeout 45s xvfb-run -a fs-uae "$config" > "$OUT_DIR/fs-uae.log" 2>&1
 fs_rc=$?
 set -e
 
-info_out="$aros_root/amiinternals-info.txt"
-mem_out="$aros_root/amiinternals-mem.txt"
-tasks_out="$aros_root/amiinternals-tasks.txt"
-libs_out="$aros_root/amiinternals-libs.txt"
-ports_out="$aros_root/amiinternals-ports.txt"
-info_rc="$aros_root/amiinternals-info-rc.txt"
-mem_rc="$aros_root/amiinternals-mem-rc.txt"
-tasks_rc="$aros_root/amiinternals-tasks-rc.txt"
-libs_rc="$aros_root/amiinternals-libs-rc.txt"
-ports_rc="$aros_root/amiinternals-ports-rc.txt"
+check_tool() {
+  local key="$1"
+  local title="$2"
+  local marker="$3"
+  local out="$aros_root/amiinternals-$key.txt"
+  local after="$aros_root/amiinternals-after-$key.txt"
 
-info_status=FAIL
-mem_status=FAIL
-tasks_status=FAIL
-libs_status=FAIL
-ports_status=FAIL
+  if [[ -f "$after" && -f "$out" ]] && grep -q "$title 0.1" "$out" && grep -q 'AmiInternals - Ploos AS' "$out" && grep -q "$marker" "$out"; then
+    echo PASS
+  else
+    echo FAIL
+  fi
+}
 
-if [[ -f "$aros_root/amiinternals-after-info.txt" && -f "$info_out" ]] && grep -q 'Info 0.1' "$info_out" && grep -q 'AmiInternals - Ploos AS' "$info_out"; then
-  info_status=PASS
-fi
-
-if [[ -f "$aros_root/amiinternals-after-mem.txt" && -f "$mem_out" ]] && grep -q 'Mem 0.1' "$mem_out" && grep -q 'AmiInternals - Ploos AS' "$mem_out" && grep -q 'Chip' "$mem_out" && grep -q 'Largest' "$mem_out"; then
-  mem_status=PASS
-fi
-
-if [[ -f "$aros_root/amiinternals-after-tasks.txt" && -f "$tasks_out" ]] && grep -q 'Tasks 0.1' "$tasks_out" && grep -q 'AmiInternals - Ploos AS' "$tasks_out" && grep -q 'State Pri Name' "$tasks_out"; then
-  tasks_status=PASS
-fi
-
-if [[ -f "$aros_root/amiinternals-after-libs.txt" && -f "$libs_out" ]] && grep -q 'Libs 0.1' "$libs_out" && grep -q 'AmiInternals - Ploos AS' "$libs_out" && grep -q 'Version Name' "$libs_out"; then
-  libs_status=PASS
-fi
-
-if [[ -f "$aros_root/amiinternals-after-ports.txt" && -f "$ports_out" ]] && grep -q 'Ports 0.1' "$ports_out" && grep -q 'AmiInternals - Ploos AS' "$ports_out" && grep -q 'Sig Name' "$ports_out"; then
-  ports_status=PASS
-fi
+info_status=$(check_tool info Info 'Exec')
+mem_status=$(check_tool mem Mem 'Largest')
+tasks_status=$(check_tool tasks Tasks 'State Pri Name')
+libs_status=$(check_tool libs Libs 'Version Name')
+ports_status=$(check_tool ports Ports 'Sig Name')
+devices_status=$(check_tool devices Devices 'Version Name')
+resources_status=$(check_tool resources Resources 'Name')
 
 status=FAIL
 observation=guest_tool_failure
-if [[ "$info_status" == PASS && "$mem_status" == PASS && "$tasks_status" == PASS && "$libs_status" == PASS && "$ports_status" == PASS ]]; then
+if [[ "$info_status" == PASS && "$mem_status" == PASS && "$tasks_status" == PASS && "$libs_status" == PASS && "$ports_status" == PASS && "$devices_status" == PASS && "$resources_status" == PASS ]]; then
   status=PASS
-  observation=guest_executed_info_mem_tasks_libs_and_ports
-elif [[ ! -f "$aros_root/amiinternals-after-info.txt" && -f "$aros_root/amiinternals-before-info.txt" ]]; then
-  observation=info_did_not_return
-elif [[ ! -f "$aros_root/amiinternals-after-mem.txt" && -f "$aros_root/amiinternals-before-mem.txt" ]]; then
-  observation=mem_did_not_return
-elif [[ ! -f "$aros_root/amiinternals-after-tasks.txt" && -f "$aros_root/amiinternals-before-tasks.txt" ]]; then
-  observation=tasks_did_not_return
-elif [[ ! -f "$aros_root/amiinternals-after-libs.txt" && -f "$aros_root/amiinternals-before-libs.txt" ]]; then
-  observation=libs_did_not_return
-elif [[ ! -f "$aros_root/amiinternals-after-ports.txt" && -f "$aros_root/amiinternals-before-ports.txt" ]]; then
-  observation=ports_did_not_return
+  observation=guest_executed_full_m0_7_m0_9_batch
+else
+  for key in info mem tasks libs ports devices resources; do
+    if [[ ! -f "$aros_root/amiinternals-after-$key.txt" && -f "$aros_root/amiinternals-before-$key.txt" ]]; then
+      observation="${key}_did_not_return"
+      break
+    fi
+  done
 fi
 
 {
   echo "STATUS=$status"
-  echo "GATE=M0_7_AROS_GUEST_EXECUTION"
+  echo "GATE=M0_7_M0_9_AROS_GUEST_BATCH"
   echo "MODEL=A1200"
   echo "KICKSTART=internal"
   echo "FS_UAE_EXIT=$fs_rc"
@@ -131,17 +122,16 @@ fi
   echo "TASKS_STATUS=$tasks_status"
   echo "LIBS_STATUS=$libs_status"
   echo "PORTS_STATUS=$ports_status"
+  echo "DEVICES_STATUS=$devices_status"
+  echo "RESOURCES_STATUS=$resources_status"
   echo "OBSERVATION=$observation"
-  if [[ -f "$info_rc" ]]; then tr -d '\r' < "$info_rc" | sed 's/^/INFO_GUEST_RC=/'; fi
-  if [[ -f "$mem_rc" ]]; then tr -d '\r' < "$mem_rc" | sed 's/^/MEM_GUEST_RC=/'; fi
-  if [[ -f "$tasks_rc" ]]; then tr -d '\r' < "$tasks_rc" | sed 's/^/TASKS_GUEST_RC=/'; fi
-  if [[ -f "$libs_rc" ]]; then tr -d '\r' < "$libs_rc" | sed 's/^/LIBS_GUEST_RC=/'; fi
-  if [[ -f "$ports_rc" ]]; then tr -d '\r' < "$ports_rc" | sed 's/^/PORTS_GUEST_RC=/'; fi
-  if [[ -f "$info_out" ]]; then tr -d '\r' < "$info_out" | sed 's/^/GUEST_INFO=/'; fi
-  if [[ -f "$mem_out" ]]; then tr -d '\r' < "$mem_out" | sed 's/^/GUEST_MEM=/'; fi
-  if [[ -f "$tasks_out" ]]; then tr -d '\r' < "$tasks_out" | sed 's/^/GUEST_TASKS=/'; fi
-  if [[ -f "$libs_out" ]]; then tr -d '\r' < "$libs_out" | sed 's/^/GUEST_LIBS=/'; fi
-  if [[ -f "$ports_out" ]]; then tr -d '\r' < "$ports_out" | sed 's/^/GUEST_PORTS=/'; fi
+  for key in info mem tasks libs ports devices resources; do
+    rcfile="$aros_root/amiinternals-$key-rc.txt"
+    outfile="$aros_root/amiinternals-$key.txt"
+    upper=$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]')
+    if [[ -f "$rcfile" ]]; then tr -d '\r' < "$rcfile" | sed "s/^/${upper}_GUEST_RC=/"; fi
+    if [[ -f "$outfile" ]]; then tr -d '\r' < "$outfile" | sed "s/^/GUEST_${upper}=/"; fi
+  done
 } | tee "$OUT_DIR/result.txt"
 
 [[ "$status" == PASS ]]
