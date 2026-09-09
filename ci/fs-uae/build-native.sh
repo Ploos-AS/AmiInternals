@@ -44,8 +44,8 @@ compile_tool() {
   fi
 }
 
-TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env Head Tail Hex Strings TaskInfo ExecInfo Interrupts Vectors Patches Alerts Handlers InputInfo Doctor Snapshot SnapDiff Timer Bench WatchTask)
-SOURCES=(src/info/main.c src/mem/main.c src/tasks/main.c src/libs/main.c src/ports/main.c src/devices/main.c src/resources/main.c src/residents/main.c src/assigns/main.c src/mounts/main.c src/df/main.c src/du/main.c src/find/main.c src/which/main.c src/tree/main.c src/env/main.c src/head/main.c src/tail/main.c src/hex/main.c src/strings/main.c src/taskinfo/main.c src/execinfo/main.c src/interrupts/main.c src/vectors/main.c src/patches/main.c src/alerts/main.c src/handlers/main.c src/inputinfo/main.c src/doctor/main.c src/snapshot/main.c src/snapdiff/main.c src/timer/main.c src/bench/main.c src/watchtask/main.c)
+TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env Head Tail Hex Strings TaskInfo ExecInfo Interrupts Vectors Patches Alerts Handlers InputInfo Doctor Snapshot SnapDiff Timer Bench WatchTask WatchPort WatchMem)
+SOURCES=(src/info/main.c src/mem/main.c src/tasks/main.c src/libs/main.c src/ports/main.c src/devices/main.c src/resources/main.c src/residents/main.c src/assigns/main.c src/mounts/main.c src/df/main.c src/du/main.c src/find/main.c src/which/main.c src/tree/main.c src/env/main.c src/head/main.c src/tail/main.c src/hex/main.c src/strings/main.c src/taskinfo/main.c src/execinfo/main.c src/interrupts/main.c src/vectors/main.c src/patches/main.c src/alerts/main.c src/handlers/main.c src/inputinfo/main.c src/doctor/main.c src/snapshot/main.c src/snapdiff/main.c src/timer/main.c src/bench/main.c src/watchtask/main.c src/watchport/main.c src/watchmem/main.c)
 
 for i in "${!TOOLS[@]}"; do
   compile_tool "${TOOLS[$i]}" "${SOURCES[$i]}"
@@ -70,7 +70,7 @@ sha256sum "$OUT_DIR/Info" > "$OUT_DIR/Info.sha256"
 
 {
   echo 'STATUS=PASS'
-  echo 'GATE=M4_BATCH2_NATIVE_BEBBO'
+  echo 'GATE=M4_COMPLETE_NATIVE_BEBBO'
   echo "IMAGE=$IMAGE"
   for tool in "${TOOLS[@]}"; do echo "BINARY_${tool^^}=$OUT_DIR/$tool"; done
 } | tee "$OUT_DIR/result.txt"
