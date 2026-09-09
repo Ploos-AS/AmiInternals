@@ -3,11 +3,25 @@
 
 #include "ai_compat.h"
 
+static void put_hex32(ULONG value)
+{
+    static const char digits[] = "0123456789ABCDEF";
+    char out[9];
+    int shift;
+    int i = 0;
+
+    for (shift = 28; shift >= 0; shift -= 4) {
+        out[i++] = digits[(value >> shift) & 0x0FUL];
+    }
+    out[i] = '\0';
+    ai_puts(out);
+}
+
 static void put_ptr(const char *label, APTR value)
 {
     ai_puts(label);
     ai_puts(" 0x");
-    ai_put_hex32((ULONG)value);
+    put_hex32((ULONG)value);
     ai_puts("\n");
 }
 
@@ -31,9 +45,9 @@ int main(void)
     put_ptr("WarmCapture", (APTR)sysbase->WarmCapture);
     put_ptr("DebugEntry", (APTR)sysbase->DebugEntry);
     ai_puts("LowMemChkSum 0x");
-    ai_put_hex32((ULONG)sysbase->LowMemChkSum);
+    put_hex32((ULONG)sysbase->LowMemChkSum);
     ai_puts("\nExecChkSum 0x");
-    ai_put_hex32((ULONG)sysbase->ChkSum);
+    put_hex32((ULONG)sysbase->ChkSum);
     ai_puts("\n");
     return 0;
 }
