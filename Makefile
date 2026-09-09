@@ -12,10 +12,11 @@ INFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/info/main.o
 MEM_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/mem/main.o
 TASKS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/tasks/main.o
 LIBS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/libs/main.o
+PORTS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/ports/main.o
 
-.PHONY: all clean info mem tasks libs check-config
+.PHONY: all clean info mem tasks libs ports check-config
 
-all: info mem tasks libs
+all: info mem tasks libs ports
 
 check-config:
 	@echo "CC=$(CC)"
@@ -28,6 +29,7 @@ info: $(BUILD_DIR)/Info
 mem: $(BUILD_DIR)/Mem
 tasks: $(BUILD_DIR)/Tasks
 libs: $(BUILD_DIR)/Libs
+ports: $(BUILD_DIR)/Ports
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(INFO_OBJS)
@@ -40,6 +42,9 @@ $(BUILD_DIR)/Tasks: $(TASKS_OBJS)
 
 $(BUILD_DIR)/Libs: $(LIBS_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(LIBS_OBJS)
+
+$(BUILD_DIR)/Ports: $(PORTS_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(PORTS_OBJS)
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
@@ -58,6 +63,10 @@ $(BUILD_DIR)/tasks/%.o: src/tasks/%.c include/ai_compat.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/libs/%.o: src/libs/%.c include/ai_compat.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/ports/%.o: src/ports/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
