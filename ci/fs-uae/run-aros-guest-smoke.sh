@@ -5,7 +5,7 @@ OUT_DIR="${1:-build/fs-uae/aros-guest}"
 SYSTEM_DIR="build/fs-uae/aros-system"
 mkdir -p "$OUT_DIR"
 
-TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find)
+TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env)
 for tool in "${TOOLS[@]}"; do
   if [[ ! -f "build/fs-uae/native/$tool" ]]; then
     echo "ERROR: native $tool binary missing; run build-native.sh first" >&2
@@ -88,10 +88,27 @@ SYS:C/Echo "AMIINTERNALS_BEFORE_FIND=1" >SYS:amiinternals-before-find.txt
 SYS:AmiInternalsTest/Find Info SYS:AmiInternalsTest >SYS:amiinternals-find.txt
 SYS:C/Echo $RC >SYS:amiinternals-find-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_FIND=1" >SYS:amiinternals-after-find.txt
+SYS:C/Echo "AMIINTERNALS_BEFORE_WHICH=1" >SYS:amiinternals-before-which.txt
+SYS:AmiInternalsTest/Which SYS:AmiInternalsTest/Info >SYS:amiinternals-which.txt
+SYS:C/Echo $RC >SYS:amiinternals-which-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_WHICH=1" >SYS:amiinternals-after-which.txt
+SYS:C/MakeDir SYS:AmiInternalsTree
+SYS:C/MakeDir SYS:AmiInternalsTree/Sub
+SYS:C/Echo "tree-smoke" >SYS:AmiInternalsTree/Sub/Leaf.txt
+SYS:C/Echo "AMIINTERNALS_BEFORE_TREE=1" >SYS:amiinternals-before-tree.txt
+SYS:AmiInternalsTest/Tree SYS:AmiInternalsTree >SYS:amiinternals-tree.txt
+SYS:C/Echo $RC >SYS:amiinternals-tree-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_TREE=1" >SYS:amiinternals-after-tree.txt
+SYS:C/Echo "AMIINTERNALS_ENV_VALUE" >ENV:AMIINTERNALS_TEST
+SYS:C/Echo "AMIINTERNALS_BEFORE_ENV=1" >SYS:amiinternals-before-env.txt
+SYS:AmiInternalsTest/Env AMIINTERNALS_TEST >SYS:amiinternals-env.txt
+SYS:C/Echo $RC >SYS:amiinternals-env-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_ENV=1" >SYS:amiinternals-after-env.txt
 SYS:C/Execute SYS:S/Startup-Sequence.amiinternals-original
 EOF
 
 rm -f "$aros_root"/amiinternals-*.txt
+rm -rf "$aros_root/AmiInternalsTree"
 
 config="$OUT_DIR/aros-guest.fs-uae"
 sed "s|@AROS_ROOT@|$PWD/$aros_root|" ci/fs-uae/aros-guest.fs-uae > "$config"
@@ -129,14 +146,17 @@ mounts_status=$(check_tool mounts Mounts 'State Name')
 df_status=$(check_tool df DF 'BlockSize Total Used Free Name')
 du_status=$(check_tool du DU 'Bytes Files Dirs Errors Path')
 find_status=$(check_tool find Find 'Matches:')
+which_status=$(check_tool which Which 'SYS:AmiInternalsTest/Info')
+tree_status=$(check_tool tree Tree 'Leaf.txt')
+env_status=$(check_tool env Env 'AMIINTERNALS_TEST=AMIINTERNALS_ENV_VALUE')
 
 status=FAIL
 observation=guest_tool_failure
-if [[ "$info_status" == PASS && "$mem_status" == PASS && "$tasks_status" == PASS && "$libs_status" == PASS && "$ports_status" == PASS && "$devices_status" == PASS && "$resources_status" == PASS && "$residents_status" == PASS && "$assigns_status" == PASS && "$mounts_status" == PASS && "$df_status" == PASS && "$du_status" == PASS && "$find_status" == PASS ]]; then
+if [[ "$info_status" == PASS && "$mem_status" == PASS && "$tasks_status" == PASS && "$libs_status" == PASS && "$ports_status" == PASS && "$devices_status" == PASS && "$resources_status" == PASS && "$residents_status" == PASS && "$assigns_status" == PASS && "$mounts_status" == PASS && "$df_status" == PASS && "$du_status" == PASS && "$find_status" == PASS && "$which_status" == PASS && "$tree_status" == PASS && "$env_status" == PASS ]]; then
   status=PASS
-  observation=guest_executed_full_m2_1_m2_3_batch
+  observation=guest_executed_full_m2_4_m2_6_batch
 else
-  for key in info mem tasks libs ports devices resources residents assigns mounts df du find; do
+  for key in info mem tasks libs ports devices resources residents assigns mounts df du find which tree env; do
     if [[ ! -f "$aros_root/amiinternals-after-$key.txt" && -f "$aros_root/amiinternals-before-$key.txt" ]]; then
       observation="${key}_did_not_return"
       break
@@ -146,7 +166,7 @@ fi
 
 {
   echo "STATUS=$status"
-  echo "GATE=M2_1_M2_3_AROS_GUEST_BATCH"
+  echo "GATE=M2_4_M2_6_AROS_GUEST_BATCH"
   echo "MODEL=A1200"
   echo "KICKSTART=internal"
   echo "FS_UAE_EXIT=$fs_rc"
@@ -163,8 +183,11 @@ fi
   echo "DF_STATUS=$df_status"
   echo "DU_STATUS=$du_status"
   echo "FIND_STATUS=$find_status"
+  echo "WHICH_STATUS=$which_status"
+  echo "TREE_STATUS=$tree_status"
+  echo "ENV_STATUS=$env_status"
   echo "OBSERVATION=$observation"
-  for key in info mem tasks libs ports devices resources residents assigns mounts df du find; do
+  for key in info mem tasks libs ports devices resources residents assigns mounts df du find which tree env; do
     rcfile="$aros_root/amiinternals-$key-rc.txt"
     outfile="$aros_root/amiinternals-$key.txt"
     upper=$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]')
