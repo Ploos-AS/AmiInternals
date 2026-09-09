@@ -5,7 +5,7 @@ OUT_DIR="${1:-build/fs-uae/aros-guest}"
 SYSTEM_DIR="build/fs-uae/aros-system"
 mkdir -p "$OUT_DIR"
 
-TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts)
+TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find)
 for tool in "${TOOLS[@]}"; do
   if [[ ! -f "build/fs-uae/native/$tool" ]]; then
     echo "ERROR: native $tool binary missing; run build-native.sh first" >&2
@@ -76,6 +76,18 @@ SYS:C/Echo "AMIINTERNALS_BEFORE_MOUNTS=1" >SYS:amiinternals-before-mounts.txt
 SYS:AmiInternalsTest/Mounts >SYS:amiinternals-mounts.txt
 SYS:C/Echo $RC >SYS:amiinternals-mounts-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_MOUNTS=1" >SYS:amiinternals-after-mounts.txt
+SYS:C/Echo "AMIINTERNALS_BEFORE_DF=1" >SYS:amiinternals-before-df.txt
+SYS:AmiInternalsTest/DF >SYS:amiinternals-df.txt
+SYS:C/Echo $RC >SYS:amiinternals-df-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_DF=1" >SYS:amiinternals-after-df.txt
+SYS:C/Echo "AMIINTERNALS_BEFORE_DU=1" >SYS:amiinternals-before-du.txt
+SYS:AmiInternalsTest/DU SYS:AmiInternalsTest >SYS:amiinternals-du.txt
+SYS:C/Echo $RC >SYS:amiinternals-du-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_DU=1" >SYS:amiinternals-after-du.txt
+SYS:C/Echo "AMIINTERNALS_BEFORE_FIND=1" >SYS:amiinternals-before-find.txt
+SYS:AmiInternalsTest/Find Info SYS:AmiInternalsTest >SYS:amiinternals-find.txt
+SYS:C/Echo $RC >SYS:amiinternals-find-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_FIND=1" >SYS:amiinternals-after-find.txt
 SYS:C/Execute SYS:S/Startup-Sequence.amiinternals-original
 EOF
 
@@ -114,14 +126,17 @@ resources_status=$(check_tool resources Resources 'Name')
 residents_status=$(check_tool residents Residents 'Ver Type Pri Name')
 assigns_status=$(check_tool assigns Assigns 'Type Name')
 mounts_status=$(check_tool mounts Mounts 'State Name')
+df_status=$(check_tool df DF 'BlockSize Total Used Free Name')
+du_status=$(check_tool du DU 'Bytes Files Dirs Errors Path')
+find_status=$(check_tool find Find 'Matches:')
 
 status=FAIL
 observation=guest_tool_failure
-if [[ "$info_status" == PASS && "$mem_status" == PASS && "$tasks_status" == PASS && "$libs_status" == PASS && "$ports_status" == PASS && "$devices_status" == PASS && "$resources_status" == PASS && "$residents_status" == PASS && "$assigns_status" == PASS && "$mounts_status" == PASS ]]; then
+if [[ "$info_status" == PASS && "$mem_status" == PASS && "$tasks_status" == PASS && "$libs_status" == PASS && "$ports_status" == PASS && "$devices_status" == PASS && "$resources_status" == PASS && "$residents_status" == PASS && "$assigns_status" == PASS && "$mounts_status" == PASS && "$df_status" == PASS && "$du_status" == PASS && "$find_status" == PASS ]]; then
   status=PASS
-  observation=guest_executed_full_m0_10_m0_12_batch
+  observation=guest_executed_full_m2_1_m2_3_batch
 else
-  for key in info mem tasks libs ports devices resources residents assigns mounts; do
+  for key in info mem tasks libs ports devices resources residents assigns mounts df du find; do
     if [[ ! -f "$aros_root/amiinternals-after-$key.txt" && -f "$aros_root/amiinternals-before-$key.txt" ]]; then
       observation="${key}_did_not_return"
       break
@@ -131,7 +146,7 @@ fi
 
 {
   echo "STATUS=$status"
-  echo "GATE=M0_10_M0_12_AROS_GUEST_BATCH"
+  echo "GATE=M2_1_M2_3_AROS_GUEST_BATCH"
   echo "MODEL=A1200"
   echo "KICKSTART=internal"
   echo "FS_UAE_EXIT=$fs_rc"
@@ -145,8 +160,11 @@ fi
   echo "RESIDENTS_STATUS=$residents_status"
   echo "ASSIGNS_STATUS=$assigns_status"
   echo "MOUNTS_STATUS=$mounts_status"
+  echo "DF_STATUS=$df_status"
+  echo "DU_STATUS=$du_status"
+  echo "FIND_STATUS=$find_status"
   echo "OBSERVATION=$observation"
-  for key in info mem tasks libs ports devices resources residents assigns mounts; do
+  for key in info mem tasks libs ports devices resources residents assigns mounts df du find; do
     rcfile="$aros_root/amiinternals-$key-rc.txt"
     outfile="$aros_root/amiinternals-$key.txt"
     upper=$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]')
