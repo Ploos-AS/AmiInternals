@@ -70,7 +70,7 @@ int main(void)
     int count = 0;
     int i;
 
-    dosbase = (struct DosLibrary *)OpenLibrary("dos.library", 0);
+    dosbase = (struct DosLibrary *)OpenLibrary((STRPTR)"dos.library", 0);
     if (dosbase == 0) {
         ai_puts("Assigns: cannot open dos.library\n");
         return 20;
