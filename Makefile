@@ -15,10 +15,11 @@ LIBS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/libs/main.o
 PORTS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/ports/main.o
 DEVICES_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/devices/main.o
 RESOURCES_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/resources/main.o
+RESIDENTS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/residents/main.o
 
-.PHONY: all clean info mem tasks libs ports devices resources check-config
+.PHONY: all clean info mem tasks libs ports devices resources residents check-config
 
-all: info mem tasks libs ports devices resources
+all: info mem tasks libs ports devices resources residents
 
 check-config:
 	@echo "CC=$(CC)"
@@ -34,6 +35,7 @@ libs: $(BUILD_DIR)/Libs
 ports: $(BUILD_DIR)/Ports
 devices: $(BUILD_DIR)/Devices
 resources: $(BUILD_DIR)/Resources
+residents: $(BUILD_DIR)/Residents
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(INFO_OBJS)
@@ -55,6 +57,9 @@ $(BUILD_DIR)/Devices: $(DEVICES_OBJS)
 
 $(BUILD_DIR)/Resources: $(RESOURCES_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(RESOURCES_OBJS)
+
+$(BUILD_DIR)/Residents: $(RESIDENTS_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(RESIDENTS_OBJS)
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
@@ -85,6 +90,10 @@ $(BUILD_DIR)/devices/%.o: src/devices/%.c include/ai_compat.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/resources/%.o: src/resources/%.c include/ai_compat.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/residents/%.o: src/residents/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
