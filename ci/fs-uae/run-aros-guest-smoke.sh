@@ -26,39 +26,42 @@ if [[ -z "$startup" ]]; then
 fi
 
 aros_root="$(dirname "$(dirname "$startup")")"
+tool_dir="$aros_root/AmiInternalsTest"
+rm -rf "$tool_dir"
+mkdir -p "$tool_dir"
 for tool in "${TOOLS[@]}"; do
-  cp "build/fs-uae/native/$tool" "$aros_root/$tool"
+  cp "build/fs-uae/native/$tool" "$tool_dir/$tool"
 done
 cp "$startup" "$startup.amiinternals-original"
 
 cat > "$startup" <<'EOF'
 SYS:C/Echo "AMIINTERNALS_GUEST_STARTED=1" >SYS:amiinternals-started.txt
 SYS:C/Echo "AMIINTERNALS_BEFORE_INFO=1" >SYS:amiinternals-before-info.txt
-SYS:Info >SYS:amiinternals-info.txt
+SYS:AmiInternalsTest/Info >SYS:amiinternals-info.txt
 SYS:C/Echo $RC >SYS:amiinternals-info-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_INFO=1" >SYS:amiinternals-after-info.txt
 SYS:C/Echo "AMIINTERNALS_BEFORE_MEM=1" >SYS:amiinternals-before-mem.txt
-SYS:Mem >SYS:amiinternals-mem.txt
+SYS:AmiInternalsTest/Mem >SYS:amiinternals-mem.txt
 SYS:C/Echo $RC >SYS:amiinternals-mem-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_MEM=1" >SYS:amiinternals-after-mem.txt
 SYS:C/Echo "AMIINTERNALS_BEFORE_TASKS=1" >SYS:amiinternals-before-tasks.txt
-SYS:Tasks >SYS:amiinternals-tasks.txt
+SYS:AmiInternalsTest/Tasks >SYS:amiinternals-tasks.txt
 SYS:C/Echo $RC >SYS:amiinternals-tasks-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_TASKS=1" >SYS:amiinternals-after-tasks.txt
 SYS:C/Echo "AMIINTERNALS_BEFORE_LIBS=1" >SYS:amiinternals-before-libs.txt
-SYS:Libs >SYS:amiinternals-libs.txt
+SYS:AmiInternalsTest/Libs >SYS:amiinternals-libs.txt
 SYS:C/Echo $RC >SYS:amiinternals-libs-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_LIBS=1" >SYS:amiinternals-after-libs.txt
 SYS:C/Echo "AMIINTERNALS_BEFORE_PORTS=1" >SYS:amiinternals-before-ports.txt
-SYS:Ports >SYS:amiinternals-ports.txt
+SYS:AmiInternalsTest/Ports >SYS:amiinternals-ports.txt
 SYS:C/Echo $RC >SYS:amiinternals-ports-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_PORTS=1" >SYS:amiinternals-after-ports.txt
 SYS:C/Echo "AMIINTERNALS_BEFORE_DEVICES=1" >SYS:amiinternals-before-devices.txt
-SYS:Devices >SYS:amiinternals-devices.txt
+SYS:AmiInternalsTest/Devices >SYS:amiinternals-devices.txt
 SYS:C/Echo $RC >SYS:amiinternals-devices-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_DEVICES=1" >SYS:amiinternals-after-devices.txt
 SYS:C/Echo "AMIINTERNALS_BEFORE_RESOURCES=1" >SYS:amiinternals-before-resources.txt
-SYS:Resources >SYS:amiinternals-resources.txt
+SYS:AmiInternalsTest/Resources >SYS:amiinternals-resources.txt
 SYS:C/Echo $RC >SYS:amiinternals-resources-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_RESOURCES=1" >SYS:amiinternals-after-resources.txt
 SYS:C/Execute SYS:S/Startup-Sequence.amiinternals-original
