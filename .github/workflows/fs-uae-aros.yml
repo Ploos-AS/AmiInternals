@@ -24,8 +24,11 @@ jobs:
       - name: Gate 1 - native 68000 build
         run: bash ci/fs-uae/build-native.sh
 
-      - name: Gate 2 - execute Info inside AROS guest
+      - name: Gate 2 - execute M0-M2 inside AROS guest
         run: bash ci/fs-uae/run-aros-guest-smoke.sh
+
+      - name: Gate 3 - execute M3 batch 1 inside AROS guest
+        run: bash ci/fs-uae/run-m3-batch1-smoke.sh
 
       - name: Upload qualification evidence
         if: always()
@@ -34,6 +37,9 @@ jobs:
           name: fs-uae-aros-qualification
           path: |
             build/fs-uae/native/Info
+            build/fs-uae/native/TaskInfo
+            build/fs-uae/native/ExecInfo
+            build/fs-uae/native/Interrupts
             build/fs-uae/native/Info.sha256
             build/fs-uae/native/file.txt
             build/fs-uae/native/result.txt
@@ -44,4 +50,8 @@ jobs:
             build/fs-uae/aros-guest/fs-uae.log
             build/fs-uae/aros-guest/fs-uae-version.txt
             build/fs-uae/aros-guest/aros-guest.fs-uae
+            build/fs-uae/m3-batch1/result.txt
+            build/fs-uae/m3-batch1/fs-uae.log
+            build/fs-uae/m3-batch1/fs-uae-version.txt
+            build/fs-uae/m3-batch1/aros-guest.fs-uae
           if-no-files-found: warn
