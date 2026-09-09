@@ -45,8 +45,11 @@ WATCHMEM_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/watchmem/main.o
 DISKINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/diskinfo/main.o
 BOOTINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/bootinfo/main.o
 ROMINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/rominfo/main.o
+TRACKINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/trackinfo/main.o
+FLOPPYTEST_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/floppytest/main.o
+DISKCHECK_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/diskcheck/main.o
 
-TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo doctor snapshot snapdiff timer bench watchtask watchport watchmem diskinfo bootinfo rominfo
+TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo doctor snapshot snapdiff timer bench watchtask watchport watchmem diskinfo bootinfo rominfo trackinfo floppytest diskcheck
 
 .PHONY: all clean check-config $(TOOLS)
 all: $(TOOLS)
@@ -97,6 +100,9 @@ watchmem: $(BUILD_DIR)/WatchMem
 diskinfo: $(BUILD_DIR)/DiskInfo
 bootinfo: $(BUILD_DIR)/BootInfo
 rominfo: $(BUILD_DIR)/ROMInfo
+trackinfo: $(BUILD_DIR)/TrackInfo
+floppytest: $(BUILD_DIR)/FloppyTest
+diskcheck: $(BUILD_DIR)/DiskCheck
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
@@ -175,6 +181,12 @@ $(BUILD_DIR)/DiskInfo: $(DISKINFO_OBJS)
 $(BUILD_DIR)/BootInfo: $(BOOTINFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 $(BUILD_DIR)/ROMInfo: $(ROMINFO_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/TrackInfo: $(TRACKINFO_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/FloppyTest: $(FLOPPYTEST_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/DiskCheck: $(DISKCHECK_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
