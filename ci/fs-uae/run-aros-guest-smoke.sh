@@ -32,7 +32,42 @@ mkdir -p "$tool_dir"
 for tool in "${TOOLS[@]}"; do
   cp "build/fs-uae/native/$tool" "$tool_dir/$tool"
 done
-cp "$startup" "$startup.amiinternals-original"
+
+original="$startup.amiinternals-original"
+cp "$startup" "$original"
+
+# Env is special during the early AROS boot.  Inject its smoke test immediately
+# after AROS itself establishes ENV:, instead of creating a synthetic early
+# assign that can block before the environment subsystem is ready.
+injected="$original.injected"
+set +e
+awk '
+{
+  print
+  if (!done) {
+    lower = tolower($0)
+    if (lower ~ /assign[[:space:]]+env:/) {
+      print "SYS:C/Echo \"AMIINTERNALS_ENV_VALUE\" >ENV:AMIINTERNALS_TEST"
+      print "SYS:C/Echo \"AMIINTERNALS_BEFORE_ENV=1\" >SYS:amiinternals-before-env.txt"
+      print "SYS:AmiInternalsTest/Env AMIINTERNALS_TEST >SYS:amiinternals-env.txt"
+      print "SYS:C/Echo $RC >SYS:amiinternals-env-rc.txt"
+      print "SYS:C/Echo \"AMIINTERNALS_AFTER_ENV=1\" >SYS:amiinternals-after-env.txt"
+      done = 1
+    }
+  }
+}
+END {
+  if (!done) exit 42
+}
+' "$original" > "$injected"
+awk_rc=$?
+set -e
+if [[ $awk_rc -ne 0 ]]; then
+  echo "ERROR: could not find native AROS Assign ENV: line in Startup-Sequence" >&2
+  grep -in 'env:' "$original" >&2 || true
+  exit 1
+fi
+mv "$injected" "$original"
 
 cat > "$startup" <<'EOF'
 SYS:C/Echo "AMIINTERNALS_GUEST_STARTED=1" >SYS:amiinternals-started.txt
@@ -99,22 +134,11 @@ SYS:C/Echo "AMIINTERNALS_BEFORE_TREE=1" >SYS:amiinternals-before-tree.txt
 SYS:AmiInternalsTest/Tree SYS:AmiInternalsTree >SYS:amiinternals-tree.txt
 SYS:C/Echo $RC >SYS:amiinternals-tree-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_TREE=1" >SYS:amiinternals-after-tree.txt
-SYS:C/Echo "ENV_FIXTURE_BEFORE_MAKEDIR=1" >SYS:amiinternals-env-stage0.txt
-SYS:C/MakeDir SYS:AmiInternalsEnv
-SYS:C/Echo "ENV_FIXTURE_AFTER_MAKEDIR=1" >SYS:amiinternals-env-stage1.txt
-SYS:C/Assign ENV: SYS:AmiInternalsEnv
-SYS:C/Echo "ENV_FIXTURE_AFTER_ASSIGN=1" >SYS:amiinternals-env-stage2.txt
-SYS:C/Echo "AMIINTERNALS_ENV_VALUE" >ENV:AMIINTERNALS_TEST
-SYS:C/Echo "ENV_FIXTURE_AFTER_WRITE=1" >SYS:amiinternals-env-stage3.txt
-SYS:C/Echo "AMIINTERNALS_BEFORE_ENV=1" >SYS:amiinternals-before-env.txt
-SYS:AmiInternalsTest/Env AMIINTERNALS_TEST >SYS:amiinternals-env.txt
-SYS:C/Echo $RC >SYS:amiinternals-env-rc.txt
-SYS:C/Echo "AMIINTERNALS_AFTER_ENV=1" >SYS:amiinternals-after-env.txt
 SYS:C/Execute SYS:S/Startup-Sequence.amiinternals-original
 EOF
 
 rm -f "$aros_root"/amiinternals-*.txt
-rm -rf "$aros_root/AmiInternalsTree" "$aros_root/AmiInternalsEnv"
+rm -rf "$aros_root/AmiInternalsTree"
 
 config="$OUT_DIR/aros-guest.fs-uae"
 sed "s|@AROS_ROOT@|$PWD/$aros_root|" ci/fs-uae/aros-guest.fs-uae > "$config"
@@ -193,14 +217,6 @@ fi
   echo "TREE_STATUS=$tree_status"
   echo "ENV_STATUS=$env_status"
   echo "OBSERVATION=$observation"
-  for stage in 0 1 2 3; do
-    stagefile="$aros_root/amiinternals-env-stage${stage}.txt"
-    if [[ -f "$stagefile" ]]; then
-      tr -d '\r' < "$stagefile" | sed "s/^/ENV_STAGE${stage}=/"
-    else
-      echo "ENV_STAGE${stage}=MISSING"
-    fi
-  done
   for key in info mem tasks libs ports devices resources residents assigns mounts df du find which tree env; do
     rcfile="$aros_root/amiinternals-$key-rc.txt"
     outfile="$aros_root/amiinternals-$key.txt"
