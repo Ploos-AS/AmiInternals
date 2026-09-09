@@ -63,11 +63,12 @@ compile_tool Env src/env/main.c
 compile_tool Head src/head/main.c
 compile_tool Tail src/tail/main.c
 compile_tool Hex src/hex/main.c
+compile_tool Strings src/strings/main.c
 
 echo 'STEP=validate-output'
 : > "$OUT_DIR/files.txt"
 : > "$OUT_DIR/checksums.sha256"
-TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env Head Tail Hex)
+TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env Head Tail Hex Strings)
 for tool in "${TOOLS[@]}"; do
   test -s "build/$tool"
   cp "build/$tool" "$OUT_DIR/$tool"
@@ -84,7 +85,7 @@ sha256sum "$OUT_DIR/Info" > "$OUT_DIR/Info.sha256"
 
 {
   echo 'STATUS=PASS'
-  echo 'GATE=M2_7_M2_9_NATIVE_BEBBO_BATCH'
+  echo 'GATE=M2_10_NATIVE_BEBBO_M2_COMPLETE'
   echo "IMAGE=$IMAGE"
   for tool in "${TOOLS[@]}"; do echo "BINARY_${tool^^}=$OUT_DIR/$tool"; done
 } | tee "$OUT_DIR/result.txt"
