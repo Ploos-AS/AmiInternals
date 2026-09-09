@@ -36,9 +36,9 @@ done
 original="$startup.amiinternals-original"
 cp "$startup" "$original"
 
-# Env is special during the early AROS boot.  Inject its smoke test immediately
-# after AROS itself establishes ENV:, instead of creating a synthetic early
-# assign that can block before the environment subsystem is ready.
+# Env is special during the early AROS boot. Inject its smoke test immediately
+# after AROS itself establishes ENV:. Keep stage markers around every operation
+# so a failed run identifies the exact command that did not return.
 injected="$original.injected"
 set +e
 awk '
@@ -47,10 +47,16 @@ awk '
   if (!done) {
     lower = tolower($0)
     if (lower ~ /assign[[:space:]]+"?env:"?/) {
+      print "SYS:C/Echo \"ENV_NATIVE_STAGE0_AFTER_ASSIGN=1\" >SYS:amiinternals-env-stage0.txt"
+      print "SYS:C/Echo \"ENV_NATIVE_STAGE1_BEFORE_WRITE=1\" >SYS:amiinternals-env-stage1.txt"
       print "SYS:C/Echo \"AMIINTERNALS_ENV_VALUE\" >ENV:AMIINTERNALS_TEST"
+      print "SYS:C/Echo \"ENV_NATIVE_STAGE2_AFTER_WRITE=1\" >SYS:amiinternals-env-stage2.txt"
       print "SYS:C/Echo \"AMIINTERNALS_BEFORE_ENV=1\" >SYS:amiinternals-before-env.txt"
+      print "SYS:C/Echo \"ENV_NATIVE_STAGE3_BEFORE_BINARY=1\" >SYS:amiinternals-env-stage3.txt"
       print "SYS:AmiInternalsTest/Env AMIINTERNALS_TEST >SYS:amiinternals-env.txt"
+      print "SYS:C/Echo \"ENV_NATIVE_STAGE4_AFTER_BINARY=1\" >SYS:amiinternals-env-stage4.txt"
       print "SYS:C/Echo $RC >SYS:amiinternals-env-rc.txt"
+      print "SYS:C/Echo \"ENV_NATIVE_STAGE5_AFTER_RC=1\" >SYS:amiinternals-env-stage5.txt"
       print "SYS:C/Echo \"AMIINTERNALS_AFTER_ENV=1\" >SYS:amiinternals-after-env.txt"
       done = 1
     }
@@ -217,6 +223,14 @@ fi
   echo "TREE_STATUS=$tree_status"
   echo "ENV_STATUS=$env_status"
   echo "OBSERVATION=$observation"
+  for stage in 0 1 2 3 4 5; do
+    stagefile="$aros_root/amiinternals-env-stage${stage}.txt"
+    if [[ -f "$stagefile" ]]; then
+      tr -d '\r' < "$stagefile" | sed "s/^/ENV_NATIVE_STAGE${stage}=/"
+    else
+      echo "ENV_NATIVE_STAGE${stage}=MISSING"
+    fi
+  done
   for key in info mem tasks libs ports devices resources residents assigns mounts df du find which tree env; do
     rcfile="$aros_root/amiinternals-$key-rc.txt"
     outfile="$aros_root/amiinternals-$key.txt"
