@@ -42,8 +42,11 @@ BENCH_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/bench/main.o
 WATCHTASK_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/watchtask/main.o
 WATCHPORT_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/watchport/main.o
 WATCHMEM_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/watchmem/main.o
+DISKINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/diskinfo/main.o
+BOOTINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/bootinfo/main.o
+ROMINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/rominfo/main.o
 
-TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo doctor snapshot snapdiff timer bench watchtask watchport watchmem
+TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo doctor snapshot snapdiff timer bench watchtask watchport watchmem diskinfo bootinfo rominfo
 
 .PHONY: all clean check-config $(TOOLS)
 all: $(TOOLS)
@@ -91,6 +94,9 @@ bench: $(BUILD_DIR)/Bench
 watchtask: $(BUILD_DIR)/WatchTask
 watchport: $(BUILD_DIR)/WatchPort
 watchmem: $(BUILD_DIR)/WatchMem
+diskinfo: $(BUILD_DIR)/DiskInfo
+bootinfo: $(BUILD_DIR)/BootInfo
+rominfo: $(BUILD_DIR)/ROMInfo
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
@@ -163,6 +169,12 @@ $(BUILD_DIR)/WatchTask: $(WATCHTASK_OBJS)
 $(BUILD_DIR)/WatchPort: $(WATCHPORT_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 $(BUILD_DIR)/WatchMem: $(WATCHMEM_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/DiskInfo: $(DISKINFO_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/BootInfo: $(BOOTINFO_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/ROMInfo: $(ROMINFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
