@@ -56,11 +56,12 @@ compile_tool() {
 
 compile_tool Info src/info/main.c
 compile_tool Mem src/mem/main.c
+compile_tool Tasks src/tasks/main.c
 
 echo 'STEP=validate-output'
 : > "$OUT_DIR/files.txt"
 : > "$OUT_DIR/checksums.sha256"
-for tool in Info Mem; do
+for tool in Info Mem Tasks; do
   test -s "build/$tool"
   cp "build/$tool" "$OUT_DIR/$tool"
   file "$OUT_DIR/$tool" | tee -a "$OUT_DIR/files.txt"
@@ -75,5 +76,5 @@ done
 cp "$OUT_DIR/files.txt" "$OUT_DIR/file.txt"
 sha256sum "$OUT_DIR/Info" > "$OUT_DIR/Info.sha256"
 
-printf 'STATUS=PASS\nGATE=M0_4_NATIVE_BEBBO_BUILD\nIMAGE=%s\nBINARY_INFO=%s\nBINARY_MEM=%s\n' \
-  "$IMAGE" "$OUT_DIR/Info" "$OUT_DIR/Mem" | tee "$OUT_DIR/result.txt"
+printf 'STATUS=PASS\nGATE=M0_5_NATIVE_BEBBO_BUILD\nIMAGE=%s\nBINARY_INFO=%s\nBINARY_MEM=%s\nBINARY_TASKS=%s\n' \
+  "$IMAGE" "$OUT_DIR/Info" "$OUT_DIR/Mem" "$OUT_DIR/Tasks" | tee "$OUT_DIR/result.txt"
