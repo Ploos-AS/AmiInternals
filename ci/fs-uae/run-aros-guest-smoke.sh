@@ -5,7 +5,7 @@ OUT_DIR="${1:-build/fs-uae/aros-guest}"
 SYSTEM_DIR="build/fs-uae/aros-system"
 mkdir -p "$OUT_DIR"
 
-TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env Head Tail Hex)
+TOOLS=(Info Mem Tasks Libs Ports Devices Resources Residents Assigns Mounts DF DU Find Which Tree Env Head Tail Hex Strings)
 for tool in "${TOOLS[@]}"; do
   if [[ ! -f "build/fs-uae/native/$tool" ]]; then
     echo "ERROR: native $tool binary missing; run build-native.sh first" >&2
@@ -39,6 +39,7 @@ mkdir -p "$env_dir"
 printf 'AMIINTERNALS_ENV_VALUE\n' > "$env_dir/AMIINTERNALS_TEST"
 printf 'line01\nline02\nline03\nline04\nline05\nline06\nline07\nline08\nline09\nline10\nline11\nline12\n' > "$aros_root/AmiInternalsText.txt"
 printf '\x00\x41\x42\x7f\xff\n' > "$aros_root/AmiInternalsHex.bin"
+printf '\x00ABC\x00HELLO_WORLD\xffXY\x00PLOOS_AS\x00' > "$aros_root/AmiInternalsStrings.bin"
 
 cp "$startup" "$startup.amiinternals-original"
 
@@ -107,6 +108,9 @@ SYS:C/Echo "AMIINTERNALS_AFTER_TAIL=1" >SYS:amiinternals-after-tail.txt
 SYS:AmiInternalsTest/Hex SYS:AmiInternalsHex.bin >SYS:amiinternals-hex.txt
 SYS:C/Echo $RC >SYS:amiinternals-hex-rc.txt
 SYS:C/Echo "AMIINTERNALS_AFTER_HEX=1" >SYS:amiinternals-after-hex.txt
+SYS:AmiInternalsTest/Strings SYS:AmiInternalsStrings.bin >SYS:amiinternals-strings.txt
+SYS:C/Echo $RC >SYS:amiinternals-strings-rc.txt
+SYS:C/Echo "AMIINTERNALS_AFTER_STRINGS=1" >SYS:amiinternals-after-strings.txt
 SYS:C/Execute SYS:S/Startup-Sequence.amiinternals-original
 EOF
 
@@ -152,6 +156,11 @@ check_hex() {
   if [[ -f "$aros_root/amiinternals-after-hex.txt" && -f "$out" ]] && grep -q 'Hex 0.1' "$out" && grep -q '00 41 42 7F FF' "$out" && grep -q '\.AB\.\.' "$out"; then echo PASS; else echo FAIL; fi
 }
 
+check_strings() {
+  local out="$aros_root/amiinternals-strings.txt"
+  if [[ -f "$aros_root/amiinternals-after-strings.txt" && -f "$out" ]] && grep -q 'Strings 0.1' "$out" && grep -q '^HELLO_WORLD$' "$out" && grep -q '^PLOOS_AS$' "$out" && ! grep -q '^ABC$' "$out" && ! grep -q '^XY$' "$out"; then echo PASS; else echo FAIL; fi
+}
+
 info_status=$(check_tool info Info 'Exec')
 mem_status=$(check_tool mem Mem 'Largest')
 tasks_status=$(check_tool tasks Tasks 'State Pri Name')
@@ -171,24 +180,25 @@ env_status=$(check_env_smoke)
 head_status=$(check_head)
 tail_status=$(check_tail)
 hex_status=$(check_hex)
+strings_status=$(check_strings)
 
 status=FAIL
 observation=guest_tool_failure
-if [[ "$info_status" == PASS && "$mem_status" == PASS && "$tasks_status" == PASS && "$libs_status" == PASS && "$ports_status" == PASS && "$devices_status" == PASS && "$resources_status" == PASS && "$residents_status" == PASS && "$assigns_status" == PASS && "$mounts_status" == PASS && "$df_status" == PASS && "$du_status" == PASS && "$find_status" == PASS && "$which_status" == PASS && "$tree_status" == PASS && "$env_status" == PASS && "$head_status" == PASS && "$tail_status" == PASS && "$hex_status" == PASS ]]; then
+if [[ "$info_status" == PASS && "$mem_status" == PASS && "$tasks_status" == PASS && "$libs_status" == PASS && "$ports_status" == PASS && "$devices_status" == PASS && "$resources_status" == PASS && "$residents_status" == PASS && "$assigns_status" == PASS && "$mounts_status" == PASS && "$df_status" == PASS && "$du_status" == PASS && "$find_status" == PASS && "$which_status" == PASS && "$tree_status" == PASS && "$env_status" == PASS && "$head_status" == PASS && "$tail_status" == PASS && "$hex_status" == PASS && "$strings_status" == PASS ]]; then
   status=PASS
-  observation=guest_executed_full_m2_7_m2_9_batch_env_smoke_only
+  observation=guest_executed_complete_m2_batch_env_smoke_only
 fi
 
 {
   echo "STATUS=$status"
-  echo "GATE=M2_7_M2_9_AROS_GUEST_BATCH"
+  echo "GATE=M2_10_AROS_GUEST_M2_COMPLETE"
   echo "MODEL=A1200"
   echo "KICKSTART=internal"
   echo "FS_UAE_EXIT=$fs_rc"
-  for pair in "INFO:$info_status" "MEM:$mem_status" "TASKS:$tasks_status" "LIBS:$libs_status" "PORTS:$ports_status" "DEVICES:$devices_status" "RESOURCES:$resources_status" "RESIDENTS:$residents_status" "ASSIGNS:$assigns_status" "MOUNTS:$mounts_status" "DF:$df_status" "DU:$du_status" "FIND:$find_status" "WHICH:$which_status" "TREE:$tree_status" "ENV:$env_status" "HEAD:$head_status" "TAIL:$tail_status" "HEX:$hex_status"; do echo "${pair%%:*}_STATUS=${pair#*:}"; done
+  for pair in "INFO:$info_status" "MEM:$mem_status" "TASKS:$tasks_status" "LIBS:$libs_status" "PORTS:$ports_status" "DEVICES:$devices_status" "RESOURCES:$resources_status" "RESIDENTS:$residents_status" "ASSIGNS:$assigns_status" "MOUNTS:$mounts_status" "DF:$df_status" "DU:$du_status" "FIND:$find_status" "WHICH:$which_status" "TREE:$tree_status" "ENV:$env_status" "HEAD:$head_status" "TAIL:$tail_status" "HEX:$hex_status" "STRINGS:$strings_status"; do echo "${pair%%:*}_STATUS=${pair#*:}"; done
   echo "ENV_QUALIFICATION=AROS_SMOKE_ONLY_REAL_ENV_SEMANTICS_DEFERRED_TO_KICKSTART_1_2"
   echo "OBSERVATION=$observation"
-  for key in info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex; do
+  for key in info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings; do
     rcfile="$aros_root/amiinternals-$key-rc.txt"
     outfile="$aros_root/amiinternals-$key.txt"
     upper=$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]')
