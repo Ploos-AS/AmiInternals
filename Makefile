@@ -22,10 +22,11 @@ DF_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/df/main.o
 DU_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/du/main.o
 FIND_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/find/main.o
 WHICH_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/which/main.o
+TREE_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/tree/main.o
 
-.PHONY: all clean info mem tasks libs ports devices resources residents assigns mounts df du find which check-config
+.PHONY: all clean info mem tasks libs ports devices resources residents assigns mounts df du find which tree check-config
 
-all: info mem tasks libs ports devices resources residents assigns mounts df du find which
+all: info mem tasks libs ports devices resources residents assigns mounts df du find which tree
 
 check-config:
 	@echo "CC=$(CC)"
@@ -48,6 +49,7 @@ df: $(BUILD_DIR)/DF
 du: $(BUILD_DIR)/DU
 find: $(BUILD_DIR)/Find
 which: $(BUILD_DIR)/Which
+tree: $(BUILD_DIR)/Tree
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(INFO_OBJS)
@@ -90,6 +92,9 @@ $(BUILD_DIR)/Find: $(FIND_OBJS)
 
 $(BUILD_DIR)/Which: $(WHICH_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(WHICH_OBJS)
+
+$(BUILD_DIR)/Tree: $(TREE_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(TREE_OBJS)
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
@@ -148,6 +153,10 @@ $(BUILD_DIR)/find/%.o: src/find/%.c include/ai_compat.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/which/%.o: src/which/%.c include/ai_compat.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/tree/%.o: src/tree/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
