@@ -28,9 +28,8 @@ int main(int argc, char **argv)
     LONG wanted = DEFAULT_LINES;
     LONG end;
     LONG pos;
-    LONG got;
+    LONG got = 0;
     LONG lines = 0;
-    LONG start;
     LONG i;
 
     ai_puts("Tail 0.1\nAmiInternals - Ploos AS\n\n");
@@ -53,10 +52,15 @@ int main(int argc, char **argv)
         return 5;
     }
 
-    end = Seek(fh, 0, OFFSET_END);
-    if (end < 0) {
+    if (Seek(fh, 0, OFFSET_END) < 0) {
         Close(fh);
         ai_puts("Cannot seek file\n");
+        return 5;
+    }
+    end = Seek(fh, 0, OFFSET_CURRENT);
+    if (end < 0) {
+        Close(fh);
+        ai_puts("Cannot determine file size\n");
         return 5;
     }
     pos = end;
@@ -90,8 +94,6 @@ found_start:
         Close(fh);
         return 5;
     }
-    start = pos;
-    (void)start;
     while ((got = Read(fh, buffer, BUFFER_SIZE)) > 0)
         Write(Output(), buffer, got);
 
