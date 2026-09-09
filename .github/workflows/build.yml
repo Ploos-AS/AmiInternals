@@ -5,23 +5,20 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   m68k-build:
-    runs-on: ubuntu-latest
-    container:
-      image: amigadev/m68k-amigaos-gcc:latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Toolchain
+
+      - name: Native 68000 build
+        run: bash ci/fs-uae/build-native.sh
+
+      - name: Inspect evidence
         run: |
-          m68k-amigaos-gcc --version
-          make check-config
-      - name: Build Info
-        run: |
-          make clean
-          make info
-          test -s build/Info
-      - name: Inspect binary
-        run: |
-          m68k-amigaos-objdump -f build/Info
-          m68k-amigaos-size build/Info
+          test -s build/fs-uae/native/Info
+          cat build/fs-uae/native/file.txt
+          cat build/fs-uae/native/result.txt
