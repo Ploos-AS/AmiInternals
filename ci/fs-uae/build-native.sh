@@ -27,20 +27,35 @@ docker image inspect "$IMAGE" --format '{{join .RepoDigests "\n"}}' | tee "$OUT_
 echo 'STEP=compiler-version'
 timeout 30s docker run --rm "$IMAGE" m68k-amigaos-gcc --version | tee "$OUT_DIR/compiler-version.txt"
 
-echo 'STEP=native-compile'
-rm -f build/Info build/Mem
-set +e
-timeout "${BUILD_TIMEOUT}s" docker run --rm \
-  -v "$PWD:/work" \
-  -w /work \
-  "$IMAGE" \
-  sh -lc 'm68k-amigaos-gcc -Iinclude -Os -Wall -Wextra -Werror -m68000 -fomit-frame-pointer -noixemul -o build/Info src/common/compat.c src/common/output.c src/info/main.c -noixemul && m68k-amigaos-gcc -Iinclude -Os -Wall -Wextra -Werror -m68000 -fomit-frame-pointer -noixemul -o build/Mem src/common/compat.c src/common/output.c src/mem/main.c -noixemul'
-rc=$?
-set -e
-if [[ $rc -ne 0 ]]; then
-  echo "ERROR: native compile failed or timed out (rc=$rc)" >&2
-  exit "$rc"
-fi
+compile_tool() {
+  local tool="$1"
+  local source="$2"
+
+  echo "STEP=native-compile-$tool"
+  rm -f "build/$tool"
+  set +e
+  timeout "${BUILD_TIMEOUT}s" docker run --rm \
+    -v "$PWD:/work" \
+    -w /work \
+    "$IMAGE" \
+    m68k-amigaos-gcc \
+      -Iinclude \
+      -Os -Wall -Wextra -Werror -m68000 -fomit-frame-pointer -noixemul \
+      -o "build/$tool" \
+      src/common/compat.c \
+      src/common/output.c \
+      "$source" \
+      -noixemul
+  rc=$?
+  set -e
+  if [[ $rc -ne 0 ]]; then
+    echo "ERROR: native compile for $tool failed or timed out (rc=$rc)" >&2
+    exit "$rc"
+  fi
+}
+
+compile_tool Info src/info/main.c
+compile_tool Mem src/mem/main.c
 
 echo 'STEP=validate-output'
 : > "$OUT_DIR/files.txt"
@@ -58,7 +73,7 @@ done
 
 # Compatibility aliases retained for the existing build workflow.
 cp "$OUT_DIR/files.txt" "$OUT_DIR/file.txt"
-grep 'Info:' "$OUT_DIR/checksums.sha256" > "$OUT_DIR/Info.sha256" || sha256sum "$OUT_DIR/Info" > "$OUT_DIR/Info.sha256"
+sha256sum "$OUT_DIR/Info" > "$OUT_DIR/Info.sha256"
 
 printf 'STATUS=PASS\nGATE=M0_4_NATIVE_BEBBO_BUILD\nIMAGE=%s\nBINARY_INFO=%s\nBINARY_MEM=%s\n' \
   "$IMAGE" "$OUT_DIR/Info" "$OUT_DIR/Mem" | tee "$OUT_DIR/result.txt"
