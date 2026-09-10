@@ -1,4 +1,6 @@
+#include <exec/execbase.h>
 #include <exec/types.h>
+#include <proto/exec.h>
 
 #include "ai_compat.h"
 
@@ -28,16 +30,28 @@ static const char *vector_name(int vector)
 
 int main(void)
 {
+    struct ExecBase *sysbase = *(struct ExecBase **)4;
     volatile ULONG *vectors = (volatile ULONG *)0;
     ULONG values[LAST_VECTOR - FIRST_VECTOR + 1];
     int vector;
     int index = 0;
 
+    ai_puts("Vectors 0.1\nAmiInternals - Ploos AS\n\n");
+
+    if (!sysbase) {
+        ai_puts("SysBase unavailable\n");
+        return 5;
+    }
+
+    /* On the 68000 hard-gate target the exception table is fixed at address 0.
+       Disable interrupts only for the bounded snapshot so handlers cannot be
+       replaced between individual vector reads.  Keep all output afterwards. */
+    Disable();
     for (vector = FIRST_VECTOR; vector <= LAST_VECTOR; ++vector) {
         values[index++] = vectors[vector];
     }
+    Enable();
 
-    ai_puts("Vectors 0.1\nAmiInternals - Ploos AS\n\n");
     ai_puts("Vector Address Name\n");
     index = 0;
     for (vector = FIRST_VECTOR; vector <= LAST_VECTOR; ++vector) {
