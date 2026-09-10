@@ -6,6 +6,7 @@
 #include "ai_compat.h"
 
 #define NAME_LEN 64
+#define MAX_TASK_VISITS 1024
 
 struct TaskSnapshot {
     ULONG address;
@@ -51,24 +52,29 @@ static int same_name(const char *a, const char *b)
     return *a == '\0' && *b == '\0';
 }
 
-static struct Task *find_in_list(struct List *list, const char *name)
+static struct Task *find_in_list(struct List *list, const char *name, LONG *truncated)
 {
     struct Node *node;
-    for (node = list->lh_Head; node && node->ln_Succ; node = node->ln_Succ) {
+    ULONG visits = 0;
+
+    for (node = list->lh_Head; node && node->ln_Succ && visits < MAX_TASK_VISITS; node = node->ln_Succ) {
+        ++visits;
         if (same_name(node->ln_Name, name)) return (struct Task *)node;
     }
+
+    if (node && node->ln_Succ) *truncated = 1;
     return 0;
 }
 
-static struct Task *find_task(struct ExecBase *sysbase, const char *name)
+static struct Task *find_task(struct ExecBase *sysbase, const char *name, LONG *truncated)
 {
     struct Task *task;
     if (!name) return sysbase->ThisTask;
     task = sysbase->ThisTask;
     if (task && same_name(task->tc_Node.ln_Name, name)) return task;
-    task = find_in_list(&sysbase->TaskReady, name);
+    task = find_in_list(&sysbase->TaskReady, name, truncated);
     if (task) return task;
-    return find_in_list(&sysbase->TaskWait, name);
+    return find_in_list(&sysbase->TaskWait, name, truncated);
 }
 
 static void take_snapshot(struct Task *task)
@@ -101,6 +107,7 @@ int main(int argc, char **argv)
     struct ExecBase *sysbase = *(struct ExecBase **)4;
     struct Task *task;
     const char *name = 0;
+    LONG truncated = 0;
 
     ai_puts("TaskInfo 0.1\nAmiInternals - Ploos AS\n\n");
     if (argc > 2) {
@@ -108,14 +115,19 @@ int main(int argc, char **argv)
         return 10;
     }
     if (argc == 2) name = argv[1];
+    if (!sysbase) {
+        ai_puts("ExecBase unavailable\n");
+        return 5;
+    }
 
     Forbid();
-    task = find_task(sysbase, name);
+    task = find_task(sysbase, name, &truncated);
     if (task) take_snapshot(task);
     Permit();
 
     if (!task) {
-        ai_puts("Task not found\n");
+        if (truncated) ai_puts("Task search limit reached\n");
+        else ai_puts("Task not found\n");
         return 5;
     }
 
