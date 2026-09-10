@@ -52,7 +52,7 @@ static LONG parse_u32(const char *s, ULONG *value)
     return 1;
 }
 
-static void emit_line(ULONG offset, LONG count)
+static LONG emit_line(ULONG offset, LONG count)
 {
     LONG i;
     LONG p = 0;
@@ -70,7 +70,7 @@ static void emit_line(ULONG offset, LONG count)
         line[p++] = (c >= 32 && c <= 126) ? (char)c : '.';
     }
     line[p++] = '\n';
-    Write(Output(), line, p);
+    return Write(Output(), line, p) == p;
 }
 
 int main(int argc, char **argv)
@@ -81,6 +81,7 @@ int main(int argc, char **argv)
     ULONG shown = 0;
     ULONG address_left;
     LONG got = 0;
+    LONG output_ok = 1;
 
     ai_puts("Hex 0.1\nAmiInternals - Ploos AS\n\n");
     if (argc < 2 || argc > 4) {
@@ -132,10 +133,14 @@ int main(int argc, char **argv)
         }
         got = Read(fh, data, want);
         if (got <= 0) break;
-        emit_line(offset + shown, got);
+        if (!emit_line(offset + shown, got)) {
+            output_ok = 0;
+            break;
+        }
         shown += (ULONG)got;
     }
 
     Close(fh);
+    if (!output_ok) return 5;
     return got < 0 ? 5 : 0;
 }
