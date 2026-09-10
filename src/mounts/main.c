@@ -6,6 +6,7 @@
 #include "ai_compat.h"
 
 #define MAX_MOUNTS 64
+#define MAX_DEVINFO_VISITS 256
 #define MOUNT_NAME_LEN 64
 
 struct MountRow {
@@ -54,6 +55,8 @@ int main(void)
     struct DosInfo *info;
     struct DevInfo *entry;
     int count = 0;
+    int visited = 0;
+    int traversal_truncated = 0;
     int i;
 
     dosbase = (struct DosLibrary *)OpenLibrary((STRPTR)"dos.library", 0);
@@ -74,13 +77,17 @@ int main(void)
     /* V1.x-compatible DevInfo traversal: snapshot while scheduling is forbidden. */
     Forbid();
     entry = (struct DevInfo *)BADDR(info->di_DevInfo);
-    while (entry != 0 && count < MAX_MOUNTS) {
+    while (entry != 0 && visited < MAX_DEVINFO_VISITS && count < MAX_MOUNTS) {
+        ++visited;
         if (entry->dvi_Type == DLT_DEVICE) {
             rows[count].active = entry->dvi_Task != 0 ? 1 : 0;
             copy_bstr(rows[count].name, entry->dvi_Name);
             ++count;
         }
         entry = (struct DevInfo *)BADDR(entry->dvi_Next);
+    }
+    if (entry != 0 && visited >= MAX_DEVINFO_VISITS) {
+        traversal_truncated = 1;
     }
     Permit();
 
@@ -98,6 +105,9 @@ int main(void)
 
     if (count >= MAX_MOUNTS) {
         ai_puts("\nWarning: mount list truncated\n");
+    }
+    if (traversal_truncated) {
+        ai_puts("\nWarning: DevInfo traversal limit reached\n");
     }
 
     return 0;
