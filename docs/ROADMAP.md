@@ -9,10 +9,12 @@ Goal: establish the compatibility contract and repository architecture.
 - [x] Establish short utility naming
 - [x] Establish read-only-first philosophy
 - [x] Define initial tool catalogue
-- [ ] Select and qualify the m68k Amiga compiler/toolchain
-- [ ] Add reproducible build entry point
-- [ ] Add common compatibility layer
-- [ ] Produce first native 1.2-targeted binary
+- [x] Select and qualify the m68k Amiga compiler/toolchain
+- [x] Add reproducible build entry point
+- [x] Add common compatibility layer
+- [x] Produce first native 1.2-targeted binary
+
+Native Bebbo/m68k-amigaos-gcc builds and FS-UAE/AROS smoke gates are automated in CI. AROS smoke is supporting evidence only; it does not replace the hard real-classic Kickstart 1.2 qualification gate below.
 
 ## M1 — Core inspection
 
@@ -20,9 +22,13 @@ Goal: establish the compatibility contract and repository architecture.
 
 These establish most safe Exec-list traversal and formatting primitives used by later tools.
 
+**CI status:** complete (native 68000 build + FS-UAE/AROS smoke).
+
 ## M2 — DOS and filesystem
 
 `DF`, `DU`, `Find`, `Which`, `Tree`, `Assigns`, `Mounts`, `Env`, `Head`, `Tail`, `Hex`, `Strings`.
+
+**CI status:** complete (native 68000 build + FS-UAE/AROS smoke).
 
 ## M3 — Deep system inspection
 
@@ -30,17 +36,23 @@ These establish most safe Exec-list traversal and formatting primitives used by 
 
 Version-sensitive structure access must be isolated and documented.
 
+**CI status:** complete (native 68000 build + FS-UAE/AROS smoke). Real-classic structure semantics remain part of the Kickstart 1.2 qualification gate.
+
 ## M4 — Diagnostics
 
 `Doctor`, `Snapshot`, `SnapDiff`, `Timer`, `Bench`, `WatchTask`, `WatchPort`, `WatchMem`.
 
 Snapshot output should be stable and text-oriented so it can be diffed on real machines and in emulator qualification.
 
+**CI status:** complete (native 68000 build + FS-UAE/AROS smoke).
+
 ## M5 — Disk and boot
 
 `DiskInfo`, `BootInfo`, `BootSave`, `BootRestore`, `TrackInfo`, `FloppyTest`, `DiskCheck`, `ROMInfo`.
 
 Read-only inspection comes first. Write-capable utilities must require an explicit action.
+
+**CI status:** complete (native 68000 build + FS-UAE/AROS smoke). `BootRestore` CI exercises only refusal/safety paths; raw boot-block write/read-back and physical or disposable classic floppy qualification remain intentionally outside AROS smoke.
 
 ## M6 — ARexx inspection
 
