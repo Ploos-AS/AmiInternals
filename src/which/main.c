@@ -7,11 +7,16 @@
 #include "ai_compat.h"
 
 #define MAX_PATH_ENTRIES 64
+#define CANDIDATE_LEN 260
 
 struct PathComponent {
     BPTR pc_Next;
     BPTR pc_Lock;
 };
+
+/* Keep DOS inspection storage out of the small classic CLI stack. */
+static struct FileInfoBlock inspect_fib;
+static char candidate[CANDIDATE_LEN];
 
 static int has_path_syntax(const char *name)
 {
@@ -23,23 +28,31 @@ static int has_path_syntax(const char *name)
     return 0;
 }
 
+static int lock_is_file(BPTR lock)
+{
+    if (lock == 0) return 0;
+    if (Examine(lock, &inspect_fib) == 0) return 0;
+    return inspect_fib.fib_DirEntryType < 0;
+}
+
 static int exists_relative_to(BPTR dir, const char *name)
 {
     BPTR dup;
     BPTR old;
     BPTR file;
+    int found;
 
     dup = DupLock(dir);
     if (dup == 0) return 0;
 
     old = CurrentDir(dup);
     file = Lock((STRPTR)name, ACCESS_READ);
+    found = lock_is_file(file);
+    if (file != 0) UnLock(file);
     CurrentDir(old);
     UnLock(dup);
 
-    if (file == 0) return 0;
-    UnLock(file);
-    return 1;
+    return found;
 }
 
 static void print_path_match(ULONG index, const char *name)
@@ -51,12 +64,24 @@ static void print_path_match(ULONG index, const char *name)
     ai_puts("\n");
 }
 
+static int lock_named_file(const char *name)
+{
+    BPTR file;
+    int found;
+
+    file = Lock((STRPTR)name, ACCESS_READ);
+    if (file == 0) return 0;
+
+    found = lock_is_file(file);
+    UnLock(file);
+    return found;
+}
+
 int main(int argc, char **argv)
 {
     struct Process *process;
     struct CommandLineInterface *cli;
     struct PathComponent *component;
-    BPTR file;
     ULONG index = 0;
 
     if (argc != 2) {
@@ -68,9 +93,7 @@ int main(int argc, char **argv)
     ai_puts("AmiInternals - Ploos AS\n\n");
 
     if (has_path_syntax(argv[1])) {
-        file = Lock((STRPTR)argv[1], ACCESS_READ);
-        if (file != 0) {
-            UnLock(file);
+        if (lock_named_file(argv[1])) {
             ai_puts(argv[1]);
             ai_puts("\n");
             return 0;
@@ -81,9 +104,7 @@ int main(int argc, char **argv)
         return 5;
     }
 
-    file = Lock((STRPTR)argv[1], ACCESS_READ);
-    if (file != 0) {
-        UnLock(file);
+    if (lock_named_file(argv[1])) {
         ai_puts("CURRENT:");
         ai_puts(argv[1]);
         ai_puts("\n");
@@ -109,22 +130,17 @@ int main(int argc, char **argv)
     }
 
     {
-        char candidate[260];
         int i = 0;
         int j = 0;
         candidate[i++] = 'C';
         candidate[i++] = ':';
-        while (argv[1][j] != '\0' && i < 259) candidate[i++] = argv[1][j++];
+        while (argv[1][j] != '\0' && i < CANDIDATE_LEN - 1) candidate[i++] = argv[1][j++];
         candidate[i] = '\0';
 
-        if (argv[1][j] == '\0') {
-            file = Lock((STRPTR)candidate, ACCESS_READ);
-            if (file != 0) {
-                UnLock(file);
-                ai_puts(candidate);
-                ai_puts("\n");
-                return 0;
-            }
+        if (argv[1][j] == '\0' && lock_named_file(candidate)) {
+            ai_puts(candidate);
+            ai_puts("\n");
+            return 0;
         }
     }
 
