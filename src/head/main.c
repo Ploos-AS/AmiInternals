@@ -56,13 +56,20 @@ int main(int argc, char **argv)
             if (buffer[i] == '\n') {
                 ++lines;
                 if (lines >= wanted) {
-                    Write(Output(), buffer + start, i - start + 1);
+                    LONG count = i - start + 1;
+                    if (Write(Output(), buffer + start, count) != count) {
+                        Close(fh);
+                        return 5;
+                    }
                     Close(fh);
                     return 0;
                 }
             }
         }
-        Write(Output(), buffer + start, got - start);
+        if (Write(Output(), buffer + start, got - start) != got - start) {
+            Close(fh);
+            return 5;
+        }
     }
 
     Close(fh);
