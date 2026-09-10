@@ -48,8 +48,10 @@ ROMINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/rominfo/main.o
 TRACKINFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/trackinfo/main.o
 FLOPPYTEST_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/floppytest/main.o
 DISKCHECK_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/diskcheck/main.o
+BOOTSAVE_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/bootsave/main.o
+BOOTRESTORE_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/bootrestore/main.o
 
-TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo doctor snapshot snapdiff timer bench watchtask watchport watchmem diskinfo bootinfo rominfo trackinfo floppytest diskcheck
+TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo doctor snapshot snapdiff timer bench watchtask watchport watchmem diskinfo bootinfo rominfo trackinfo floppytest diskcheck bootsave bootrestore
 
 .PHONY: all clean check-config $(TOOLS)
 all: $(TOOLS)
@@ -103,6 +105,8 @@ rominfo: $(BUILD_DIR)/ROMInfo
 trackinfo: $(BUILD_DIR)/TrackInfo
 floppytest: $(BUILD_DIR)/FloppyTest
 diskcheck: $(BUILD_DIR)/DiskCheck
+bootsave: $(BUILD_DIR)/BootSave
+bootrestore: $(BUILD_DIR)/BootRestore
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
@@ -187,6 +191,10 @@ $(BUILD_DIR)/TrackInfo: $(TRACKINFO_OBJS)
 $(BUILD_DIR)/FloppyTest: $(FLOPPYTEST_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 $(BUILD_DIR)/DiskCheck: $(DISKCHECK_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/BootSave: $(BOOTSAVE_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/BootRestore: $(BOOTRESTORE_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
