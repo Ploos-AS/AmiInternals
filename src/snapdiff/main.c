@@ -43,6 +43,7 @@ int main(int argc, char **argv)
     for (;;) {
         LONG i;
         LONG common;
+        LONG longest;
 
         left_got = Read(left, left_buf, READ_SIZE);
         right_got = Read(right, right_buf, READ_SIZE);
@@ -51,6 +52,10 @@ int main(int argc, char **argv)
             Close(left);
             ai_puts("Read error\n");
             return 5;
+        }
+
+        if (left_got == 0 && right_got == 0) {
+            break;
         }
 
         common = left_got < right_got ? left_got : right_got;
@@ -73,10 +78,8 @@ int main(int argc, char **argv)
             differing += extra;
         }
 
-        offset += (ULONG)(left_got > right_got ? left_got : right_got);
-        if (left_got < READ_SIZE || right_got < READ_SIZE) {
-            break;
-        }
+        longest = left_got > right_got ? left_got : right_got;
+        offset += (ULONG)longest;
     }
 
     Close(right);
