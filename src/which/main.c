@@ -17,6 +17,7 @@ struct PathComponent {
 /* Keep DOS inspection storage out of the small classic CLI stack. */
 static struct FileInfoBlock inspect_fib;
 static char candidate[CANDIDATE_LEN];
+static struct PathComponent *visited_path[MAX_PATH_ENTRIES];
 
 static int has_path_syntax(const char *name)
 {
@@ -28,27 +29,26 @@ static int has_path_syntax(const char *name)
     return 0;
 }
 
-static int lock_is_file(BPTR lock)
+static int lock_is_entry(BPTR lock)
 {
     if (lock == 0) return 0;
-    if (Examine(lock, &inspect_fib) == 0) return 0;
-    return inspect_fib.fib_DirEntryType < 0;
+    return Examine(lock, &inspect_fib) != 0;
 }
 
 static int exists_relative_to(BPTR dir, const char *name)
 {
     BPTR dup;
     BPTR old;
-    BPTR file;
+    BPTR entry;
     int found;
 
     dup = DupLock(dir);
     if (dup == 0) return 0;
 
     old = CurrentDir(dup);
-    file = Lock((STRPTR)name, ACCESS_READ);
-    found = lock_is_file(file);
-    if (file != 0) UnLock(file);
+    entry = Lock((STRPTR)name, ACCESS_READ);
+    found = lock_is_entry(entry);
+    if (entry != 0) UnLock(entry);
     CurrentDir(old);
     UnLock(dup);
 
@@ -64,17 +64,27 @@ static void print_path_match(ULONG index, const char *name)
     ai_puts("\n");
 }
 
-static int lock_named_file(const char *name)
+static int lock_named_entry(const char *name)
 {
-    BPTR file;
+    BPTR entry;
     int found;
 
-    file = Lock((STRPTR)name, ACCESS_READ);
-    if (file == 0) return 0;
+    entry = Lock((STRPTR)name, ACCESS_READ);
+    if (entry == 0) return 0;
 
-    found = lock_is_file(file);
-    UnLock(file);
+    found = lock_is_entry(entry);
+    UnLock(entry);
     return found;
+}
+
+static int path_component_seen(struct PathComponent *component, ULONG count)
+{
+    ULONG i;
+
+    for (i = 0; i < count; ++i) {
+        if (visited_path[i] == component) return 1;
+    }
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -83,9 +93,10 @@ int main(int argc, char **argv)
     struct CommandLineInterface *cli;
     struct PathComponent *component;
     ULONG index = 0;
+    int path_cycle = 0;
 
     if (argc != 2) {
-        ai_puts("Usage: Which command\n");
+        ai_puts("Usage: Which file\n");
         return 10;
     }
 
@@ -93,7 +104,7 @@ int main(int argc, char **argv)
     ai_puts("AmiInternals - Ploos AS\n\n");
 
     if (has_path_syntax(argv[1])) {
-        if (lock_named_file(argv[1])) {
+        if (lock_named_entry(argv[1])) {
             ai_puts(argv[1]);
             ai_puts("\n");
             return 0;
@@ -104,7 +115,7 @@ int main(int argc, char **argv)
         return 5;
     }
 
-    if (lock_named_file(argv[1])) {
+    if (lock_named_entry(argv[1])) {
         ai_puts("CURRENT:");
         ai_puts(argv[1]);
         ai_puts("\n");
@@ -120,6 +131,12 @@ int main(int argc, char **argv)
     if (cli != 0) {
         component = (struct PathComponent *)BADDR(cli->cli_CommandDir);
         while (component != 0 && index < MAX_PATH_ENTRIES) {
+            if (path_component_seen(component, index)) {
+                path_cycle = 1;
+                break;
+            }
+            visited_path[index] = component;
+
             if (component->pc_Lock != 0 && exists_relative_to(component->pc_Lock, argv[1])) {
                 print_path_match(index, argv[1]);
                 return 0;
@@ -137,7 +154,7 @@ int main(int argc, char **argv)
         while (argv[1][j] != '\0' && i < CANDIDATE_LEN - 1) candidate[i++] = argv[1][j++];
         candidate[i] = '\0';
 
-        if (argv[1][j] == '\0' && lock_named_file(candidate)) {
+        if (argv[1][j] == '\0' && lock_named_entry(candidate)) {
             ai_puts(candidate);
             ai_puts("\n");
             return 0;
@@ -147,7 +164,9 @@ int main(int argc, char **argv)
     ai_puts("Not found: ");
     ai_puts(argv[1]);
     ai_puts("\n");
-    if (index >= MAX_PATH_ENTRIES) {
+    if (path_cycle) {
+        ai_puts("Warning: CLI path cycle detected\n");
+    } else if (index >= MAX_PATH_ENTRIES) {
         ai_puts("Warning: CLI path traversal limit reached\n");
     }
     return 5;
