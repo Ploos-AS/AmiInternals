@@ -1,13 +1,19 @@
 #include <exec/libraries.h>
 #include <exec/ports.h>
 #include <proto/exec.h>
-#include <proto/rexxsyslib.h>
 #include <rexx/rxslib.h>
 #include <rexx/storage.h>
 
 #include "ai_compat.h"
 
-struct RxsLib *RexxSysBase;
+/*
+ * Do not use the rexxsyslib proto stubs here.  The Bebbo/libnix stubs can
+ * arrange for rexxsyslib.library to be opened before main(), which turns a
+ * deliberately optional ARexx dependency into a process-start failure on a
+ * system without the library.  RexxSend must remain startable there, so open
+ * the library explicitly and call the documented V33 public vectors directly.
+ */
+static struct Library *rexx_base;
 static struct MsgPort reply_port;
 static struct RexxMsg *rxmsg;
 
@@ -16,6 +22,56 @@ static ULONG text_len(const char *s)
     ULONG n = 0;
     while (s[n] != '\0') ++n;
     return n;
+}
+
+static STRPTR rx_create_argstring(STRPTR string, ULONG length)
+{
+    register struct Library *a6 __asm("a6") = rexx_base;
+    register STRPTR a0 __asm("a0") = string;
+    register ULONG d0 __asm("d0") = length;
+
+    __asm volatile ("jsr -126(a6)"
+                    : "+r"(d0)
+                    : "r"(a6), "r"(a0)
+                    : "d1", "a1", "cc", "memory");
+    return (STRPTR)d0;
+}
+
+static void rx_delete_argstring(STRPTR argstring)
+{
+    register struct Library *a6 __asm("a6") = rexx_base;
+    register STRPTR a0 __asm("a0") = argstring;
+
+    __asm volatile ("jsr -132(a6)"
+                    :
+                    : "r"(a6), "r"(a0)
+                    : "d0", "d1", "a1", "cc", "memory");
+}
+
+static struct RexxMsg *rx_create_msg(struct MsgPort *port, STRPTR extension,
+                                     STRPTR host)
+{
+    register struct Library *a6 __asm("a6") = rexx_base;
+    register struct MsgPort *a0 __asm("a0") = port;
+    register STRPTR a1 __asm("a1") = extension;
+    register ULONG d0 __asm("d0") = (ULONG)host;
+
+    __asm volatile ("jsr -144(a6)"
+                    : "+r"(d0)
+                    : "r"(a6), "r"(a0), "r"(a1)
+                    : "d1", "cc", "memory");
+    return (struct RexxMsg *)d0;
+}
+
+static void rx_delete_msg(struct RexxMsg *packet)
+{
+    register struct Library *a6 __asm("a6") = rexx_base;
+    register struct RexxMsg *a0 __asm("a0") = packet;
+
+    __asm volatile ("jsr -150(a6)"
+                    :
+                    : "r"(a6), "r"(a0)
+                    : "d0", "d1", "a1", "cc", "memory");
 }
 
 static int setup_reply_port(void)
@@ -50,30 +106,30 @@ int main(int argc, char **argv)
         return 10;
     }
 
-    RexxSysBase = (struct RxsLib *)OpenLibrary((STRPTR)"rexxsyslib.library", 0);
-    if (RexxSysBase == 0) {
+    rexx_base = OpenLibrary((STRPTR)"rexxsyslib.library", 0);
+    if (rexx_base == 0) {
         ai_puts("ARexx unavailable: rexxsyslib.library not present\n");
         return 5;
     }
     if (!setup_reply_port()) {
-        CloseLibrary((struct Library *)RexxSysBase);
+        CloseLibrary(rexx_base);
         ai_puts("Cannot allocate reply signal\n");
         return 5;
     }
 
-    rxmsg = CreateRexxMsg(&reply_port, (STRPTR)"rexx", (STRPTR)"AMIINTERNALS");
+    rxmsg = rx_create_msg(&reply_port, (STRPTR)"rexx", (STRPTR)"AMIINTERNALS");
     if (rxmsg == 0) {
         free_reply_port();
-        CloseLibrary((struct Library *)RexxSysBase);
+        CloseLibrary(rexx_base);
         ai_puts("Cannot create RexxMsg\n");
         return 5;
     }
     rxmsg->rm_Action = RXCOMM;
-    rxmsg->rm_Args[0] = CreateArgstring((STRPTR)argv[2], text_len(argv[2]));
+    rxmsg->rm_Args[0] = rx_create_argstring((STRPTR)argv[2], text_len(argv[2]));
     if (rxmsg->rm_Args[0] == 0) {
-        DeleteRexxMsg(rxmsg);
+        rx_delete_msg(rxmsg);
         free_reply_port();
-        CloseLibrary((struct Library *)RexxSysBase);
+        CloseLibrary(rexx_base);
         ai_puts("Cannot create command argstring\n");
         return 5;
     }
@@ -83,10 +139,10 @@ int main(int argc, char **argv)
     if (target != 0) PutMsg(target, (struct Message *)rxmsg);
     Permit();
     if (target == 0) {
-        DeleteArgstring(rxmsg->rm_Args[0]);
-        DeleteRexxMsg(rxmsg);
+        rx_delete_argstring(rxmsg->rm_Args[0]);
+        rx_delete_msg(rxmsg);
         free_reply_port();
-        CloseLibrary((struct Library *)RexxSysBase);
+        CloseLibrary(rexx_base);
         ai_puts("Target port not found\n");
         return 5;
     }
@@ -95,7 +151,7 @@ int main(int argc, char **argv)
     reply = (struct RexxMsg *)GetMsg(&reply_port);
     if (reply == 0) {
         free_reply_port();
-        CloseLibrary((struct Library *)RexxSysBase);
+        CloseLibrary(rexx_base);
         ai_puts("No ARexx reply received\n");
         return 5;
     }
@@ -110,9 +166,9 @@ int main(int argc, char **argv)
         ai_puts("\n");
     }
 
-    DeleteArgstring(reply->rm_Args[0]);
-    DeleteRexxMsg(reply);
+    rx_delete_argstring(reply->rm_Args[0]);
+    rx_delete_msg(reply);
     free_reply_port();
-    CloseLibrary((struct Library *)RexxSysBase);
+    CloseLibrary(rexx_base);
     return rc == 0 ? 0 : 5;
 }
