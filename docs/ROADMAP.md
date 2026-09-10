@@ -60,6 +60,27 @@ Read-only inspection comes first. Write-capable utilities must require an explic
 
 ARexx support is optional at runtime and must not raise the minimum OS requirement for the rest of the suite.
 
+## v0.2 — Extended inspection candidates
+
+After the v0.1.0 catalogue has completed real-classic qualification and hardening, extend AmiInternals with additional focused inspection tools. The v0.2 candidates are:
+
+- `OpenFiles` / `Locks` — inspect open files and DOS locks where safely observable.
+- `Signals` — inspect task signal allocation/state without modifying it.
+- `Semaphores` — inspect public Exec semaphores and ownership/wait state where available.
+- `MemoryMap` — summarize memory regions, headers and allocation characteristics exposed by classic Exec.
+- `Modules` — inspect loaded/resident modules with more detail than the v0.1.0 resident overview.
+- `CLIInfo` — inspect CLI/process state and command environment.
+- `ProcessTree` — present CLI/process relationships where they can be derived safely.
+- `DeviceInfo` — detailed inspection of a selected Exec device.
+- `LibraryInfo` — detailed inspection of a selected Exec library.
+- `PortInfo` — detailed inspection of a selected public message port.
+- `DOSPackets` — inspect DOS packet/handler state where this can be done defensively and read-only.
+- `Volumes` — detailed mounted-volume inspection beyond `DF`/`Mounts`.
+- `StartupInfo` — inspect startup/boot environment and relevant configuration state.
+- `CrashInfo` — collect read-only crash/alert diagnostic context where available.
+
+These are v0.2 candidates, not requirements for v0.1.0. The same compatibility policy applies: Motorola 68000 and Kickstart 1.2 remain the suite baseline unless a feature is inherently unavailable there, in which case it must degrade gracefully and be runtime-gated.
+
 ## Qualification matrix
 
 Hard compatibility gate:
