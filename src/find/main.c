@@ -51,6 +51,8 @@ static int append_name(char *dst, const char *base, const char *name)
         ++i;
     }
 
+    if (base[i] != '\0') return 0;
+
     if (i != 0 && dst[i - 1] != ':' && dst[i - 1] != '/') {
         if (i >= PATH_LEN - 1) return 0;
         dst[i++] = '/';
@@ -68,6 +70,7 @@ static void scan_dir(const char *path, const char *needle, int depth)
 {
     BPTR lock;
     struct FileInfoBlock *fib;
+    LONG ioerr;
 
     if (depth > MAX_DEPTH) {
         ++error_count;
@@ -108,6 +111,12 @@ static void scan_dir(const char *path, const char *needle, int depth)
                 ++error_count;
             }
         }
+    }
+
+    /* End-of-directory is normal; every other ExNext failure is an error. */
+    ioerr = IoErr();
+    if (ioerr != ERROR_NO_MORE_ENTRIES) {
+        ++error_count;
     }
 
     UnLock(lock);
