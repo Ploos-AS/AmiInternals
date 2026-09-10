@@ -38,7 +38,7 @@ int main(void)
     int i;
 
     if (modules != 0) {
-        while (modules[count] != 0 && count < MAX_RESIDENTS) {
+        while (count < MAX_RESIDENTS && modules[count] != 0) {
             struct Resident *resident = (struct Resident *)modules[count];
 
             if (resident != 0 &&
