@@ -6,6 +6,7 @@
 #include "ai_compat.h"
 
 #define MAX_ASSIGNS 96
+#define MAX_DEVINFO_VISITS 256
 #define ASSIGN_NAME_LEN 64
 
 struct AssignRow {
@@ -68,6 +69,8 @@ int main(void)
     struct DosInfo *info;
     struct DevInfo *entry;
     int count = 0;
+    int visited = 0;
+    int traversal_truncated = 0;
     int i;
 
     dosbase = (struct DosLibrary *)OpenLibrary((STRPTR)"dos.library", 0);
@@ -88,7 +91,8 @@ int main(void)
     /* V1.x-compatible DevInfo traversal: snapshot while scheduling is forbidden. */
     Forbid();
     entry = (struct DevInfo *)BADDR(info->di_DevInfo);
-    while (entry != 0 && count < MAX_ASSIGNS) {
+    while (entry != 0 && visited < MAX_DEVINFO_VISITS && count < MAX_ASSIGNS) {
+        ++visited;
         if (entry->dvi_Type == DLT_DIRECTORY ||
             entry->dvi_Type == DLT_LATE ||
             entry->dvi_Type == DLT_NONBINDING) {
@@ -97,6 +101,9 @@ int main(void)
             ++count;
         }
         entry = (struct DevInfo *)BADDR(entry->dvi_Next);
+    }
+    if (entry != 0 && visited >= MAX_DEVINFO_VISITS) {
+        traversal_truncated = 1;
     }
     Permit();
 
@@ -115,6 +122,9 @@ int main(void)
 
     if (count >= MAX_ASSIGNS) {
         ai_puts("\nWarning: assign list truncated\n");
+    }
+    if (traversal_truncated) {
+        ai_puts("\nWarning: DevInfo traversal limit reached\n");
     }
 
     return 0;
