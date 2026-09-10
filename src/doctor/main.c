@@ -7,6 +7,7 @@ int main(void)
 {
     struct ExecBase *sysbase = *(struct ExecBase **)4;
     struct AIExecInfo info;
+    LONG current_task_present = 0;
     int warnings = 0;
 
     ai_puts("Doctor 0.1\nAmiInternals - Ploos AS\n\n");
@@ -18,12 +19,17 @@ int main(void)
 
     ai_get_exec_info(&info);
 
+    /* Snapshot scheduler-owned state before producing output. */
+    Forbid();
+    current_task_present = (sysbase->ThisTask != 0);
+    Permit();
+
     ai_puts("OK   SysBase present\n");
     ai_puts("INFO Exec version ");
     ai_put_version(info.version, info.revision);
     ai_puts("\n");
 
-    if (sysbase->ThisTask != 0) {
+    if (current_task_present) {
         ai_puts("OK   Current task present\n");
     } else {
         ai_puts("WARN Current task unavailable\n");
