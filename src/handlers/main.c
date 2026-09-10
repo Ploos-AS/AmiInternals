@@ -6,6 +6,7 @@
 #include "ai_compat.h"
 
 #define MAX_HANDLERS 64
+#define MAX_DEVINFO_VISITS 256
 #define NAME_LEN 64
 
 struct HandlerRow {
@@ -42,6 +43,7 @@ int main(void)
     struct DevInfo *entry;
     int count = 0;
     int visited = 0;
+    int truncated = 0;
     int i;
 
     dosbase = (struct DosLibrary *)OpenLibrary((STRPTR)"dos.library", 0);
@@ -61,7 +63,7 @@ int main(void)
 
     Forbid();
     entry = (struct DevInfo *)BADDR(info->di_DevInfo);
-    while (entry && visited < 256 && count < MAX_HANDLERS) {
+    while (entry && visited < MAX_DEVINFO_VISITS && count < MAX_HANDLERS) {
         ++visited;
         if (entry->dvi_Task != 0) {
             rows[count].task = (ULONG)entry->dvi_Task;
@@ -70,6 +72,7 @@ int main(void)
         }
         entry = (struct DevInfo *)BADDR(entry->dvi_Next);
     }
+    if (entry) truncated = 1;
     Permit();
 
     CloseLibrary((struct Library *)dosbase);
@@ -82,6 +85,6 @@ int main(void)
         ai_puts(rows[i].name);
         ai_puts("\n");
     }
-    if (count >= MAX_HANDLERS || visited >= 256) ai_puts("\nWarning: handler list truncated\n");
+    if (truncated) ai_puts("\nWarning: handler list truncated\n");
     return 0;
 }
