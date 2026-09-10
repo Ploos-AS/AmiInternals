@@ -94,8 +94,12 @@ found_start:
         Close(fh);
         return 5;
     }
-    while ((got = Read(fh, buffer, BUFFER_SIZE)) > 0)
-        Write(Output(), buffer, got);
+    while ((got = Read(fh, buffer, BUFFER_SIZE)) > 0) {
+        if (Write(Output(), buffer, got) != got) {
+            Close(fh);
+            return 5;
+        }
+    }
 
     Close(fh);
     return got < 0 ? 5 : 0;
