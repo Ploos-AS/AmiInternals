@@ -4,8 +4,16 @@
 
 #include "ai_compat.h"
 
-#define MAX_DEPTH 32
+#define MAX_DEPTH 16
 #define PATH_LEN 256
+
+/*
+ * Keep recursive DOS work buffers out of the CLI stack.  Static storage also
+ * gives FileInfoBlock the compiler's natural alignment, which is important on
+ * classic 68k DOS implementations.
+ */
+static struct FileInfoBlock fib_slots[MAX_DEPTH + 1];
+static char path_slots[MAX_DEPTH + 1][PATH_LEN];
 
 static ULONG total_bytes;
 static ULONG file_count;
@@ -51,46 +59,49 @@ static void add_size(LONG size)
 static void scan_dir(const char *path, int depth)
 {
     BPTR lock;
-    struct FileInfoBlock fib;
+    struct FileInfoBlock *fib;
 
     if (depth > MAX_DEPTH) {
         ++error_count;
         return;
     }
 
+    fib = &fib_slots[depth];
     lock = Lock((STRPTR)path, ACCESS_READ);
     if (lock == 0) {
         ++error_count;
         return;
     }
 
-    if (Examine(lock, &fib) == 0) {
+    if (Examine(lock, fib) == 0) {
         ++error_count;
         UnLock(lock);
         return;
     }
 
-    if (fib.fib_DirEntryType < 0) {
+    if (fib->fib_DirEntryType < 0) {
         ++file_count;
-        add_size(fib.fib_Size);
+        add_size(fib->fib_Size);
         UnLock(lock);
         return;
     }
 
     ++dir_count;
-    while (ExNext(lock, &fib) != 0) {
-        char child[PATH_LEN];
+    while (ExNext(lock, fib) != 0) {
+        char *child = path_slots[depth];
 
-        if (!append_name(child, path, fib.fib_FileName)) {
+        if (!append_name(child, path, fib->fib_FileName)) {
             ++error_count;
             continue;
         }
 
-        if (fib.fib_DirEntryType < 0) {
+        if (fib->fib_DirEntryType < 0) {
             ++file_count;
-            add_size(fib.fib_Size);
-        } else {
+            add_size(fib->fib_Size);
+        } else if (depth < MAX_DEPTH) {
             scan_dir(child, depth + 1);
+        } else {
+            ++error_count;
         }
     }
 
