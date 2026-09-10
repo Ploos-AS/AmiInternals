@@ -25,6 +25,7 @@ for tool in "${TOOLS[@]}"; do cp "build/fs-uae/native/$tool" "$tool_dir/$tool"; 
 
 cp "$startup" "$startup.amiinternals-original"
 cat > "$startup" <<'EOF'
+SYS:C/FailAt 21
 SYS:C/Echo "M5_BATCH3_STARTED=1" >SYS:m5b3-started.txt
 SYS:AmiInternalsTest/BootSave >SYS:m5b3-bootsave.txt
 SYS:C/Echo $RC >SYS:m5b3-bootsave-rc.txt
