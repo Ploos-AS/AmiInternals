@@ -7,7 +7,7 @@
 
 #include "ai_compat.h"
 
-struct Library *RexxSysBase;
+struct RxsLib *RexxSysBase;
 static struct MsgPort reply_port;
 static struct RexxMsg *rxmsg;
 
@@ -50,13 +50,13 @@ int main(int argc, char **argv)
         return 10;
     }
 
-    RexxSysBase = OpenLibrary((STRPTR)"rexxsyslib.library", 0);
+    RexxSysBase = (struct RxsLib *)OpenLibrary((STRPTR)"rexxsyslib.library", 0);
     if (RexxSysBase == 0) {
         ai_puts("ARexx unavailable: rexxsyslib.library not present\n");
         return 5;
     }
     if (!setup_reply_port()) {
-        CloseLibrary(RexxSysBase);
+        CloseLibrary((struct Library *)RexxSysBase);
         ai_puts("Cannot allocate reply signal\n");
         return 5;
     }
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     rxmsg = CreateRexxMsg(&reply_port, (STRPTR)"rexx", (STRPTR)"AMIINTERNALS");
     if (rxmsg == 0) {
         free_reply_port();
-        CloseLibrary(RexxSysBase);
+        CloseLibrary((struct Library *)RexxSysBase);
         ai_puts("Cannot create RexxMsg\n");
         return 5;
     }
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
     if (rxmsg->rm_Args[0] == 0) {
         DeleteRexxMsg(rxmsg);
         free_reply_port();
-        CloseLibrary(RexxSysBase);
+        CloseLibrary((struct Library *)RexxSysBase);
         ai_puts("Cannot create command argstring\n");
         return 5;
     }
@@ -86,7 +86,7 @@ int main(int argc, char **argv)
         DeleteArgstring(rxmsg->rm_Args[0]);
         DeleteRexxMsg(rxmsg);
         free_reply_port();
-        CloseLibrary(RexxSysBase);
+        CloseLibrary((struct Library *)RexxSysBase);
         ai_puts("Target port not found\n");
         return 5;
     }
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
     reply = (struct RexxMsg *)GetMsg(&reply_port);
     if (reply == 0) {
         free_reply_port();
-        CloseLibrary(RexxSysBase);
+        CloseLibrary((struct Library *)RexxSysBase);
         ai_puts("No ARexx reply received\n");
         return 5;
     }
@@ -113,6 +113,6 @@ int main(int argc, char **argv)
     DeleteArgstring(reply->rm_Args[0]);
     DeleteRexxMsg(reply);
     free_reply_port();
-    CloseLibrary(RexxSysBase);
+    CloseLibrary((struct Library *)RexxSysBase);
     return rc == 0 ? 0 : 5;
 }
