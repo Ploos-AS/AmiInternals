@@ -50,8 +50,11 @@ FLOPPYTEST_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/floppytest/main.o
 DISKCHECK_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/diskcheck/main.o
 BOOTSAVE_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/bootsave/main.o
 BOOTRESTORE_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/bootrestore/main.o
+REXXPORTS_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/rexxports/main.o
+REXXSEND_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/rexxsend/main.o
+REXXPROBE_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/rexxprobe/main.o
 
-TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo doctor snapshot snapdiff timer bench watchtask watchport watchmem diskinfo bootinfo rominfo trackinfo floppytest diskcheck bootsave bootrestore
+TOOLS := info mem tasks libs ports devices resources residents assigns mounts df du find which tree env head tail hex strings taskinfo execinfo interrupts vectors patches alerts handlers inputinfo doctor snapshot snapdiff timer bench watchtask watchport watchmem diskinfo bootinfo rominfo trackinfo floppytest diskcheck bootsave bootrestore rexxports rexxsend rexxprobe
 
 .PHONY: all clean check-config $(TOOLS)
 all: $(TOOLS)
@@ -107,6 +110,9 @@ floppytest: $(BUILD_DIR)/FloppyTest
 diskcheck: $(BUILD_DIR)/DiskCheck
 bootsave: $(BUILD_DIR)/BootSave
 bootrestore: $(BUILD_DIR)/BootRestore
+rexxports: $(BUILD_DIR)/RexxPorts
+rexxsend: $(BUILD_DIR)/RexxSend
+rexxprobe: $(BUILD_DIR)/RexxProbe
 
 $(BUILD_DIR)/Info: $(INFO_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
@@ -195,6 +201,12 @@ $(BUILD_DIR)/DiskCheck: $(DISKCHECK_OBJS)
 $(BUILD_DIR)/BootSave: $(BOOTSAVE_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 $(BUILD_DIR)/BootRestore: $(BOOTRESTORE_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/RexxPorts: $(REXXPORTS_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/RexxSend: $(REXXSEND_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/RexxProbe: $(REXXPROBE_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
