@@ -5,6 +5,8 @@
 #include "ai_compat.h"
 
 #define LINE_BYTES 16
+#define MAX_SEEK_OFFSET 0x7fffffffUL
+#define SEEK_ADDRESS_SPACE 0x80000000UL
 
 static UBYTE data[LINE_BYTES];
 static char line[80];
@@ -42,6 +44,7 @@ static LONG parse_u32(const char *s, ULONG *value)
         else if (base == 16 && *s >= 'A' && *s <= 'F') digit = *s - 'A' + 10;
         else return 0;
         if (digit >= base) return 0;
+        if (v > (0xffffffffUL - (ULONG)digit) / (ULONG)base) return 0;
         v = v * (ULONG)base + (ULONG)digit;
         ++s;
     }
@@ -76,6 +79,7 @@ int main(int argc, char **argv)
     ULONG offset = 0;
     ULONG limit = 0;
     ULONG shown = 0;
+    ULONG address_left;
     LONG got = 0;
 
     ai_puts("Hex 0.1\nAmiInternals - Ploos AS\n\n");
@@ -87,8 +91,18 @@ int main(int argc, char **argv)
         ai_puts("Invalid offset\n");
         return 10;
     }
+    if (offset > MAX_SEEK_OFFSET) {
+        ai_puts("Offset outside AmigaDOS seek range\n");
+        return 10;
+    }
     if (argc == 4 && !parse_u32(argv[3], &limit)) {
         ai_puts("Invalid length\n");
+        return 10;
+    }
+
+    address_left = SEEK_ADDRESS_SPACE - offset;
+    if (argc == 4 && limit > address_left) {
+        ai_puts("Requested range outside AmigaDOS seek range\n");
         return 10;
     }
 
@@ -105,11 +119,16 @@ int main(int argc, char **argv)
 
     for (;;) {
         LONG want = LINE_BYTES;
+        ULONG position_left = address_left - shown;
+
+        if (position_left == 0) break;
+        if (position_left < LINE_BYTES) want = (LONG)position_left;
+
         if (argc == 4) {
             ULONG left;
             if (shown >= limit) break;
             left = limit - shown;
-            if (left < LINE_BYTES) want = (LONG)left;
+            if (left < (ULONG)want) want = (LONG)left;
         }
         got = Read(fh, data, want);
         if (got <= 0) break;
