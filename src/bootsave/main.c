@@ -21,6 +21,13 @@ static int parse_unit(const char *s, ULONG *unit)
     return 1;
 }
 
+static void init_list(struct List *list)
+{
+    list->lh_Head = (struct Node *)&list->lh_Tail;
+    list->lh_Tail = 0;
+    list->lh_TailPred = (struct Node *)&list->lh_Head;
+}
+
 static int setup_io(ULONG unit)
 {
     BYTE sig = AllocSignal(-1);
@@ -30,7 +37,7 @@ static int setup_io(ULONG unit)
     port.mp_Flags = PA_SIGNAL;
     port.mp_SigBit = (UBYTE)sig;
     port.mp_SigTask = FindTask(0);
-    NewList(&port.mp_MsgList);
+    init_list(&port.mp_MsgList);
 
     io.io_Message.mn_Node.ln_Type = NT_MESSAGE;
     io.io_Message.mn_ReplyPort = &port;
