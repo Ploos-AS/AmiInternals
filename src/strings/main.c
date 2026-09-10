@@ -32,10 +32,15 @@ static LONG printable(UBYTE c)
     return c >= 32 && c <= 126;
 }
 
-static void emit_text(LONG length)
+static LONG write_text(LONG length)
 {
-    if (length > 0) Write(Output(), text, length);
-    Write(Output(), "\n", 1);
+    if (length <= 0) return 1;
+    return Write(Output(), text, length) == length;
+}
+
+static LONG write_newline(void)
+{
+    return Write(Output(), "\n", 1) == 1;
 }
 
 int main(int argc, char **argv)
@@ -44,6 +49,8 @@ int main(int argc, char **argv)
     ULONG minimum = 4;
     LONG got = 0;
     LONG used = 0;
+    LONG emitted = 0;
+    LONG output_ok = 1;
     LONG i;
 
     ai_puts("Strings 0.1\nAmiInternals - Ploos AS\n\n");
@@ -68,21 +75,43 @@ int main(int argc, char **argv)
 
         for (i = 0; i < got; ++i) {
             if (printable(input[i])) {
-                if (used < STRING_BYTES - 1) {
-                    text[used++] = (char)input[i];
-                } else {
-                    emit_text(used);
+                if (used == STRING_BYTES - 1) {
+                    if (!write_text(used)) {
+                        output_ok = 0;
+                        break;
+                    }
+                    emitted = 1;
                     used = 0;
-                    text[used++] = (char)input[i];
                 }
+                text[used++] = (char)input[i];
             } else {
-                if ((ULONG)used >= minimum) emit_text(used);
+                if (emitted) {
+                    if (!write_text(used) || !write_newline()) {
+                        output_ok = 0;
+                        break;
+                    }
+                } else if ((ULONG)used >= minimum) {
+                    if (!write_text(used) || !write_newline()) {
+                        output_ok = 0;
+                        break;
+                    }
+                }
                 used = 0;
+                emitted = 0;
             }
+        }
+        if (!output_ok) break;
+    }
+
+    if (output_ok && got >= 0) {
+        if (emitted) {
+            if (!write_text(used) || !write_newline()) output_ok = 0;
+        } else if ((ULONG)used >= minimum) {
+            if (!write_text(used) || !write_newline()) output_ok = 0;
         }
     }
 
-    if (got >= 0 && (ULONG)used >= minimum) emit_text(used);
     Close(fh);
+    if (!output_ok) return 5;
     return got < 0 ? 5 : 0;
 }
