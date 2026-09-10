@@ -60,6 +60,10 @@ Read-only inspection comes first. Write-capable utilities must require an explic
 
 ARexx support is optional at runtime and must not raise the minimum OS requirement for the rest of the suite.
 
+**CI status:** complete (native 68000 build + FS-UAE/AROS smoke). `RexxPorts` and `RexxProbe` observe public Exec message ports and do not by themselves prove ARexx capability. `RexxSend` must degrade gracefully when `rexxsyslib.library` is unavailable; a successful live ARexx exchange still requires real AmigaOS 2.x+ qualification with ARexx/RexxMast active.
+
+**v0.1.0 implementation status:** complete. The full M1–M6 catalogue contains 47 tools and is covered by the automated native 68000 build and FS-UAE/AROS smoke gates. This does not constitute the hard Kickstart 1.2 real-classic qualification required before release.
+
 ## v0.2 — Extended inspection candidates
 
 After the v0.1.0 catalogue has completed real-classic qualification and hardening, extend AmiInternals with additional focused inspection tools. The v0.2 candidates are:
