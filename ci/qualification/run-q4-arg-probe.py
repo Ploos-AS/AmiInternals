@@ -31,7 +31,11 @@ def main():
     p.add_argument('--rom', type=Path, required=True)
     p.add_argument('--workbench', type=Path, required=True)
     p.add_argument('--out', type=Path, required=True)
-    p.add_argument('--seconds', type=int, default=90)
+    # Q1-Q3 real-classic qualification uses 65 seconds successfully. Keep the
+    # same proven window here so Python still has time to terminate FS-UAE,
+    # extract floppy evidence, and write the verdict before an outer command
+    # runner with a ~90 second budget can kill the whole harness.
+    p.add_argument('--seconds', type=int, default=65)
     args = p.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -128,8 +132,12 @@ def main():
         'private_media': str(private),
     }
     (out / 'metadata.json').write_text(json.dumps(evidence, indent=2) + '\n')
+    # This is deliberately created before launching FS-UAE. If an outer runner
+    # kills the Python process, the retained RUNNING verdict proves that no guest
+    # conclusion was reached rather than mislabelling the run as a guest FAIL.
+    (out / 'result.txt').write_text('RUNNING: Q4 startup A/B probe; no verdict yet\n')
 
-    print('Q4 A/B: launching FS-UAE', flush=True)
+    print(f'Q4 A/B: launching FS-UAE for {args.seconds}s', flush=True)
     with (out / 'fs-uae.log').open('wb') as log:
         proc = subprocess.Popen(['fs-uae', str(config)], stdout=log, stderr=subprocess.STDOUT)
         started = time.time()
