@@ -19,6 +19,16 @@ static void put_hex32(ULONG value)
     ai_puts(text);
 }
 
+static int put_byte_count(ULONG blocks, ULONG block_size)
+{
+    if (block_size != 0 && blocks > 0xffffffffUL / block_size) {
+        ai_puts("OVERFLOW");
+        return 0;
+    }
+    ai_put_u32(blocks * block_size);
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     STRPTR path = (STRPTR)"";
@@ -27,6 +37,7 @@ int main(int argc, char **argv)
     ULONG used;
     ULONG free_blocks;
     ULONG block_size;
+    int complete = 1;
 
     ai_puts("DiskInfo 0.1\nAmiInternals - Ploos AS\n\n");
     if (argc > 2) {
@@ -63,9 +74,9 @@ int main(int argc, char **argv)
     ai_puts("\nFreeBlocks ");
     ai_put_u32(free_blocks);
     ai_puts("\nBytesTotal ");
-    ai_put_u32(total * block_size);
+    if (!put_byte_count(total, block_size)) complete = 0;
     ai_puts("\nBytesFree ");
-    ai_put_u32(free_blocks * block_size);
+    if (!put_byte_count(free_blocks, block_size)) complete = 0;
     ai_puts("\n");
-    return 0;
+    return complete ? 0 : 5;
 }
