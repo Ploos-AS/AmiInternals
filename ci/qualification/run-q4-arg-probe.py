@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
-"""A/B isolate AmiInternals argument startup on genuine AmigaOS 1.2 media."""
+"""A/B isolate AmiInternals argument startup on genuine AmigaOS 1.2 media.
+
+The runtime is deliberately split into persistent phases so evidence can still be
+collected when an outer command runner kills the process that launched FS-UAE.
+"""
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
-import tempfile
 import time
 
 
@@ -20,29 +25,36 @@ def sha256(path):
 
 def extract(xdf, disk, guest, host):
     try:
+        if host.exists():
+            host.unlink()
         command(xdf, disk, 'read', guest, host)
         return True
     except subprocess.CalledProcessError:
         return False
 
 
-def main():
-    p = argparse.ArgumentParser(__doc__)
-    p.add_argument('--rom', type=Path, required=True)
-    p.add_argument('--workbench', type=Path, required=True)
-    p.add_argument('--out', type=Path, required=True)
-    # Q1-Q3 real-classic qualification uses 65 seconds successfully. Keep the
-    # same proven window here so Python still has time to terminate FS-UAE,
-    # extract floppy evidence, and write the verdict before an outer command
-    # runner with a ~90 second budget can kill the whole harness.
-    p.add_argument('--seconds', type=int, default=65)
-    args = p.parse_args()
+def normalize(data):
+    return data.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
 
-    root = Path(__file__).resolve().parents[2]
-    out = args.out.resolve()
-    out.mkdir(parents=True, exist_ok=False)
-    rom = args.rom.resolve()
-    wb = args.workbench.resolve()
+
+def load_metadata(out):
+    path = out / 'metadata.json'
+    if not path.exists():
+        raise SystemExit('BLOCKED: no prepared probe; run --phase prepare first')
+    return json.loads(path.read_text())
+
+
+def save_metadata(out, evidence):
+    (out / 'metadata.json').write_text(json.dumps(evidence, indent=2) + '\n')
+
+
+def prepare(args, root, out, rom, wb):
+    if out.exists():
+        if any(out.iterdir()):
+            raise SystemExit('BLOCKED: output directory already exists and is not empty: ' + str(out))
+    else:
+        out.mkdir(parents=True)
+
     control = root / 'build' / 'Q4Control'
     probe = root / 'build' / 'Q4ArgProbe'
     if not control.exists() or not probe.exists():
@@ -60,15 +72,16 @@ def main():
     if sha256(wb) != '1035a9a317fbbf0056848a25397f245967d7a8f1bc5079b02a018f410899bdf0' or b'Workbench 1.2  V33.56' not in original_startup:
         raise SystemExit('BLOCKED: matching Workbench/AmigaDOS 1.2 media not found')
 
-    private = Path(tempfile.mkdtemp(prefix='amiinternals-q4-ab-', dir='/tmp'))
-    disk = private / 'workbench.adf'
+    runtime = out / 'runtime'
+    runtime.mkdir()
+    disk = runtime / 'workbench.adf'
     shutil.copyfile(wb, disk)
     command(xdf, disk, 'makedir', 'Q4')
     command(xdf, disk, 'write', control, 'Q4/Q4Control')
     command(xdf, disk, 'write', probe, 'Q4/Q4ArgProbe')
 
     for binary, guest in ((control, 'Q4/Q4Control'), (probe, 'Q4/Q4ArgProbe')):
-        copied = private / binary.name
+        copied = runtime / (binary.name + '.readback')
         command(xdf, disk, 'read', guest, copied)
         if sha256(binary) != sha256(copied):
             raise SystemExit('BLOCKED: guest binary differs from host binary: ' + binary.name)
@@ -90,7 +103,7 @@ def main():
     command(xdf, disk, 'write', sequence, 's/startup-sequence')
     readback = command(xdf, disk, 'type', 's/startup-sequence')
     (out / 'startup-sequence-readback').write_bytes(readback)
-    if readback.replace(b'\r\n', b'\n').replace(b'\r', b'\n') != sequence.read_bytes().replace(b'\r\n', b'\n').replace(b'\r', b'\n'):
+    if normalize(readback) != normalize(sequence.read_bytes()):
         raise SystemExit('BLOCKED: staged Startup-Sequence read-back differs')
 
     config = out / 'session.fs-uae'
@@ -110,7 +123,7 @@ def main():
         f'kickstarts_dir = {rom.parent}\n'
         f'floppy_drive_0 = {disk}\n'
         'writable_floppy_images = 1\n'
-        f'base_dir = {private}\n'
+        f'base_dir = {runtime}\n'
         f'logs_dir = {out / "logs"}\n'
         'fullscreen = 0\n'
         'window_width = 800\n'
@@ -128,35 +141,85 @@ def main():
         'workbench_sha256': sha256(wb),
         'control_sha256': sha256(control),
         'arg_probe_sha256': sha256(probe),
-        'runtime_seconds': args.seconds,
-        'private_media': str(private),
+        'runtime_disk': str(disk),
+        'phase': 'PREPARED',
     }
-    (out / 'metadata.json').write_text(json.dumps(evidence, indent=2) + '\n')
-    # This is deliberately created before launching FS-UAE. If an outer runner
-    # kills the Python process, the retained RUNNING verdict proves that no guest
-    # conclusion was reached rather than mislabelling the run as a guest FAIL.
-    (out / 'result.txt').write_text('RUNNING: Q4 startup A/B probe; no verdict yet\n')
+    save_metadata(out, evidence)
+    (out / 'result.txt').write_text('PREPARED: Q4 startup A/B probe\n')
+    print('PREPARED:', out)
 
-    print(f'Q4 A/B: launching FS-UAE for {args.seconds}s', flush=True)
-    with (out / 'fs-uae.log').open('wb') as log:
-        proc = subprocess.Popen(['fs-uae', str(config)], stdout=log, stderr=subprocess.STDOUT)
-        started = time.time()
-        while time.time() - started < args.seconds:
-            rc = proc.poll()
-            if rc is not None:
-                evidence['fs_uae_early_exit'] = rc
-                print('Q4 A/B: FS-UAE exited early with rc', rc, flush=True)
-                break
-            time.sleep(1)
-        if proc.poll() is None:
-            print('Q4 A/B: runtime complete; terminating emulator', flush=True)
-            proc.terminate()
+
+def launch(out):
+    evidence = load_metadata(out)
+    config = out / 'session.fs-uae'
+    disk = out / 'runtime' / 'workbench.adf'
+    if not config.exists() or not disk.exists():
+        raise SystemExit('BLOCKED: prepared runtime files are missing')
+
+    pidfile = out / 'fs-uae.pid'
+    if pidfile.exists():
+        try:
+            old_pid = int(pidfile.read_text().strip())
+            os.kill(old_pid, 0)
+            raise SystemExit('BLOCKED: FS-UAE appears to be already running with pid ' + str(old_pid))
+        except ProcessLookupError:
+            pidfile.unlink()
+
+    log = (out / 'fs-uae.log').open('ab')
+    proc = subprocess.Popen(
+        ['fs-uae', str(config)],
+        stdout=log,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+    )
+    log.close()
+    pidfile.write_text(str(proc.pid) + '\n')
+    evidence['phase'] = 'LAUNCHED'
+    evidence['fs_uae_pid'] = proc.pid
+    evidence['launched_at_unix'] = time.time()
+    save_metadata(out, evidence)
+    (out / 'result.txt').write_text('LAUNCHED: FS-UAE pid ' + str(proc.pid) + '; collect after guest run\n')
+    print('LAUNCHED: FS-UAE pid', proc.pid)
+    print('The launcher has returned; runtime evidence remains on', disk)
+
+
+def stop(out):
+    evidence = load_metadata(out)
+    pidfile = out / 'fs-uae.pid'
+    if not pidfile.exists():
+        print('STOP: no pid file; nothing to stop')
+        return
+    pid = int(pidfile.read_text().strip())
+    try:
+        os.killpg(pid, signal.SIGTERM)
+        print('STOP: sent SIGTERM to FS-UAE process group', pid)
+        deadline = time.time() + 10
+        while time.time() < deadline:
             try:
-                proc.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                proc.wait()
-        evidence['fs_uae_exit_code'] = proc.returncode
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.25)
+        else:
+            try:
+                os.killpg(pid, signal.SIGKILL)
+                print('STOP: sent SIGKILL after 10s grace period')
+            except ProcessLookupError:
+                pass
+    except ProcessLookupError:
+        print('STOP: FS-UAE was already gone')
+    evidence['phase'] = 'STOPPED'
+    evidence['stopped_at_unix'] = time.time()
+    save_metadata(out, evidence)
+    pidfile.unlink(missing_ok=True)
+
+
+def collect(out):
+    evidence = load_metadata(out)
+    disk = out / 'runtime' / 'workbench.adf'
+    if not disk.exists():
+        raise SystemExit('BLOCKED: persistent runtime disk is missing')
+    xdf = shutil.which('xdftool') or str(Path.home() / '.local/bin/xdftool')
 
     names = ('pre.txt', 'control.txt', 'control-returned.txt', 'arg.txt', 'arg-returned.txt')
     found = {}
@@ -165,7 +228,8 @@ def main():
         print(f'Q4 A/B: {name}: ' + ('FOUND' if found[name] else 'missing'), flush=True)
 
     evidence['files'] = found
-    (out / 'metadata.json').write_text(json.dumps(evidence, indent=2) + '\n')
+    evidence['phase'] = 'COLLECTED'
+    save_metadata(out, evidence)
 
     if not found['pre.txt']:
         verdict = 'FAIL: Startup-Sequence did not reach the first Q4 marker'
@@ -185,6 +249,29 @@ def main():
     print(verdict, flush=True)
     if not verdict.startswith('PASS:'):
         raise SystemExit(verdict)
+
+
+def main():
+    p = argparse.ArgumentParser(__doc__)
+    p.add_argument('--phase', choices=('prepare', 'launch', 'stop', 'collect'), required=True)
+    p.add_argument('--rom', type=Path)
+    p.add_argument('--workbench', type=Path)
+    p.add_argument('--out', type=Path, required=True)
+    args = p.parse_args()
+
+    root = Path(__file__).resolve().parents[2]
+    out = args.out.resolve()
+
+    if args.phase == 'prepare':
+        if args.rom is None or args.workbench is None:
+            raise SystemExit('BLOCKED: --phase prepare requires --rom and --workbench')
+        prepare(args, root, out, args.rom.resolve(), args.workbench.resolve())
+    elif args.phase == 'launch':
+        launch(out)
+    elif args.phase == 'stop':
+        stop(out)
+    else:
+        collect(out)
 
 
 if __name__ == '__main__':
