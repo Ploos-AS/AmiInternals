@@ -62,6 +62,7 @@ int main(int argc, char **argv)
     ULONG unit;
     BPTR fh;
     LONG wrote;
+    LONG close_ok;
 
     ai_puts("BootSave 0.1\nAmiInternals - Ploos AS\n\n");
     if (argc != 3 || !parse_unit(argv[1], &unit)) {
@@ -91,13 +92,14 @@ int main(int argc, char **argv)
         return 5;
     }
     wrote = Write(fh, bootblock, BOOTBLOCK_SIZE);
-    Close(fh);
-    if (wrote != BOOTBLOCK_SIZE) {
-        ai_puts("Cannot write complete boot block\n");
+    close_ok = Close(fh);
+    if (wrote != BOOTBLOCK_SIZE || close_ok == 0) {
+        DeleteFile((STRPTR)argv[2]);
+        ai_puts("Cannot save complete boot block; partial output removed\n");
         return 5;
     }
 
-    ai_puts("Saved 1024 bytes from DF");
+    ai_puts("Saved 1024 raw bytes from DF");
     ai_put_u32(unit);
     ai_puts(" boot block\n");
     return 0;
