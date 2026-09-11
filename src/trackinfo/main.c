@@ -32,8 +32,13 @@ int main(int argc, char **argv)
     }
     UnLock(lock);
 
-    blocks = info_data.id_NumBlocks >= 0 ? (ULONG)info_data.id_NumBlocks : 0;
-    bytes_per_block = info_data.id_BytesPerBlock >= 0 ? (ULONG)info_data.id_BytesPerBlock : 0;
+    if (info_data.id_NumBlocks <= 0 || info_data.id_BytesPerBlock <= 0) {
+        ai_puts("Invalid volume geometry data\n");
+        return 5;
+    }
+
+    blocks = (ULONG)info_data.id_NumBlocks;
+    bytes_per_block = (ULONG)info_data.id_BytesPerBlock;
 
     /* Classic Amiga DD/HD floppy geometry, inferred only for exact known sizes. */
     if (blocks == 1760UL && bytes_per_block == 512UL) sectors = 11;
