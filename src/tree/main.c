@@ -72,13 +72,14 @@ static void scan_dir(const char *path, int depth)
 
     while (ExNext(lock, fib) != 0) {
         int is_dir = fib->fib_DirEntryType >= 0;
+        const char *name = (const char *)fib->fib_FileName;
 
         print_indent(depth);
         ai_puts(is_dir ? "[D] " : "    ");
-        ai_puts(fib->fib_FileName);
+        ai_puts(name);
         ai_puts("\n");
 
-        if (!append_name(child, path, fib->fib_FileName)) {
+        if (!append_name(child, path, name)) {
             ++error_count;
             continue;
         }
