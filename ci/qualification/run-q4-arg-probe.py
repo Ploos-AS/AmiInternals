@@ -23,10 +23,6 @@ def main():
     p.add_argument('--rom', type=Path, required=True)
     p.add_argument('--workbench', type=Path, required=True)
     p.add_argument('--out', type=Path, required=True)
-    # A real-speed A500 booting Workbench 1.2 from floppy can legitimately take
-    # longer than 40 seconds.  Keep this comfortably above the 65-second Q1-Q4
-    # qualification baseline so the probe is not killed before Startup-Sequence
-    # reaches it on a loaded host.
     p.add_argument('--seconds', type=int, default=90)
     args = p.parse_args()
 
@@ -57,12 +53,22 @@ def main():
     command(xdf, disk, 'makedir', 'Q4')
     command(xdf, disk, 'write', binary, 'Q4/Q4ArgProbe')
 
+    # Stage the test so the evidence says exactly how far AmigaDOS got:
+    #   pre.txt       Startup-Sequence reached the probe.
+    #   returned1.txt An unredirected invocation returned normally.
+    #   output.txt    A second, redirected invocation reached main and wrote output.
+    #   returned2.txt The redirected invocation returned normally.
     sequence = out / 'startup-sequence'
     sequence.write_text(
         'FailAt 1\n'
         'Echo "AmigaOS 1.2 Q4 argument startup probe"\n'
+        'Echo >SYS:Q4/pre.txt "PRE"\n'
+        'Echo "Q4ArgProbe stage 1: direct console"\n'
+        'SYS:Q4/Q4ArgProbe Alpha "Beta Gamma"\n'
+        'Echo >SYS:Q4/returned1.txt "RETURNED1"\n'
+        'Echo "Q4ArgProbe stage 2: redirected"\n'
         'SYS:Q4/Q4ArgProbe Alpha "Beta Gamma" >SYS:Q4/output.txt\n'
-        'Echo >SYS:Q4/returned.txt "RETURNED"\n'
+        'Echo >SYS:Q4/returned2.txt "RETURNED2"\n'
         'Type SYS:Q4/output.txt\n'
         'Echo "Q4 argument startup probe returned normally"\n'
     )
@@ -105,6 +111,7 @@ def main():
         'binary_sha256': sha256(binary),
         'invocation': 'SYS:Q4/Q4ArgProbe Alpha "Beta Gamma"',
         'runtime_seconds': args.seconds,
+        'stages': ['pre.txt', 'returned1.txt', 'output.txt', 'returned2.txt'],
     }
     (out / 'metadata.json').write_text(json.dumps(evidence, indent=2) + '\n')
 
@@ -120,32 +127,47 @@ def main():
                 proc.kill()
                 proc.wait()
 
-    for name in ('output.txt', 'returned.txt'):
+    stage_names = ('pre.txt', 'returned1.txt', 'output.txt', 'returned2.txt')
+    for name in stage_names:
         try:
             command(xdf, disk, 'read', 'Q4/' + name, out / name)
         except subprocess.CalledProcessError:
             pass
 
-    if not (out / 'output.txt').exists() or not (out / 'returned.txt').exists():
-        (out / 'result.txt').write_text('FAIL: argument startup probe did not return normally\n')
-        raise SystemExit('FAIL: start_cli_args did not complete on AmigaOS 1.2')
+    stages = {name: (out / name).exists() for name in stage_names}
+    evidence['stage_results'] = stages
+    (out / 'metadata.json').write_text(json.dumps(evidence, indent=2) + '\n')
 
-    text = (out / 'output.txt').read_text(errors='replace')
-    expected = [
-        'Q4ArgProbe 0.1\n',
-        'argc: 3\n',
-        'argv[0]: AmiInternals\n',
-        'argv[1]: Alpha\n',
-        'argv[2]: Beta Gamma\n',
-    ]
-    missing = [item.strip() for item in expected if item not in text]
-    if missing:
-        (out / 'result.txt').write_text('FAIL: argument startup output mismatch: ' + ', '.join(missing) + '\n')
-        raise SystemExit('FAIL: start_cli_args returned with incorrect argc/argv')
+    if not stages['pre.txt']:
+        verdict = 'FAIL: Startup-Sequence did not reach Q4ArgProbe'
+    elif not stages['returned1.txt']:
+        verdict = 'FAIL: Q4ArgProbe direct invocation did not return; failure is inside program/startup, before redirection is relevant'
+    elif not stages['output.txt']:
+        verdict = 'FAIL: direct invocation returned but redirected invocation produced no output'
+    elif not stages['returned2.txt']:
+        verdict = 'FAIL: redirected invocation produced output but did not return normally'
+    else:
+        text = (out / 'output.txt').read_text(errors='replace')
+        expected = [
+            'Q4ArgProbe 0.1\n',
+            'argc: 3\n',
+            'argv[0]: AmiInternals\n',
+            'argv[1]: Alpha\n',
+            'argv[2]: Beta Gamma\n',
+        ]
+        missing = [item.strip() for item in expected if item not in text]
+        if missing:
+            verdict = 'FAIL: argument startup output mismatch: ' + ', '.join(missing)
+        else:
+            verdict = 'PASS: start_cli_args on real Kickstart 1.2 + Workbench/AmigaDOS 1.2'
 
-    (out / 'result.txt').write_text('PASS: start_cli_args on real Kickstart 1.2 + Workbench/AmigaDOS 1.2\n')
-    print(text, end='')
-    print('PASS: Q4 argument startup probe')
+    (out / 'result.txt').write_text(verdict + '\n')
+    print(json.dumps(stages, indent=2))
+    if stages['output.txt']:
+        print((out / 'output.txt').read_text(errors='replace'), end='')
+    print(verdict)
+    if not verdict.startswith('PASS:'):
+        raise SystemExit(verdict)
 
 
 if __name__ == '__main__':
