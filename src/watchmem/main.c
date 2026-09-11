@@ -1,3 +1,4 @@
+#include <exec/execbase.h>
 #include <proto/dos.h>
 
 #include "ai_compat.h"
@@ -20,6 +21,7 @@ static LONG parse_samples(const char *s)
 
 int main(int argc, char **argv)
 {
+    struct ExecBase *sysbase = *(struct ExecBase **)4;
     LONG samples = DEFAULT_SAMPLES;
     LONG i;
     struct AIExecInfo info;
@@ -37,6 +39,10 @@ int main(int argc, char **argv)
             ai_puts("Invalid sample count (1-100)\n");
             return 10;
         }
+    }
+    if (sysbase == 0) {
+        ai_puts("SysBase unavailable\n");
+        return 5;
     }
 
     ai_puts("Sample ChipFree FastFree TotalFree\n");
