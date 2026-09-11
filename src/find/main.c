@@ -5,6 +5,7 @@
 #include "ai_compat.h"
 
 #define MAX_DEPTH 16
+#define MAX_ENTRIES_PER_DIR 1024
 #define PATH_LEN 256
 
 /*
@@ -71,6 +72,7 @@ static void scan_dir(const char *path, const char *needle, int depth)
     BPTR lock;
     struct FileInfoBlock *fib;
     LONG ioerr;
+    ULONG entries = 0;
 
     if (depth > MAX_DEPTH) {
         ++error_count;
@@ -90,15 +92,17 @@ static void scan_dir(const char *path, const char *needle, int depth)
         return;
     }
 
-    while (ExNext(lock, fib) != 0) {
+    while (entries < MAX_ENTRIES_PER_DIR && ExNext(lock, fib) != 0) {
         char *child = path_slots[depth];
+        const char *name = (const char *)fib->fib_FileName;
 
-        if (!append_name(child, path, fib->fib_FileName)) {
+        ++entries;
+        if (!append_name(child, path, name)) {
             ++error_count;
             continue;
         }
 
-        if (contains_ci(fib->fib_FileName, needle)) {
+        if (contains_ci(name, needle)) {
             ai_puts(child);
             ai_puts("\n");
             ++match_count;
@@ -113,10 +117,14 @@ static void scan_dir(const char *path, const char *needle, int depth)
         }
     }
 
-    /* End-of-directory is normal; every other ExNext failure is an error. */
-    ioerr = IoErr();
-    if (ioerr != ERROR_NO_MORE_ENTRIES) {
+    if (entries >= MAX_ENTRIES_PER_DIR) {
         ++error_count;
+    } else {
+        /* End-of-directory is normal; every other ExNext failure is an error. */
+        ioerr = IoErr();
+        if (ioerr != ERROR_NO_MORE_ENTRIES) {
+            ++error_count;
+        }
     }
 
     UnLock(lock);
