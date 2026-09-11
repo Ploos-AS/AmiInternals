@@ -4,22 +4,24 @@ Requires FS-UAE, a visible X11/Xwayland session, `xwininfo`, libXcomposite, Pyth
 amitools `xdftool`, and the local Bebbo `m68k-amigaos-gcc` toolchain on PATH.
 No system media is downloaded. Supply your own licensed media.
 
-## Current batch — Q3
+## Current batch — Q4
 
-Q1 (`Info`, `Mem`, `Tasks`) and Q2 (`Ports`, `Libs`, `Devices`) have passed the real AmigaOS 1.2 hard gate. Q3 completes M1 with the two remaining tools: `Resources` and `Residents`. It intentionally does not mix an M2 tool into the M1 batch.
+Q1 (`Info`, `Mem`, `Tasks`), Q2 (`Ports`, `Libs`, `Devices`), and Q3 (`Resources`, `Residents`) have passed the real AmigaOS 1.2 hard gate. M1 real-classic qualification is complete.
+
+Q4 begins M2 with `DF`, `DU`, and `Find`.
 
 From the repository root:
 
 ```sh
 git pull --ff-only
-bash ci/qualification/build-q3.sh
-python3 ci/qualification/run-q3.py \
+bash ci/qualification/build-q4.sh
+python3 ci/qualification/run-q4.py \
   --rom "$HOME/Documents/FS-UAE/Kickstarts/amiga-os-120.rom" \
   --workbench "$HOME/Documents/FS-UAE/Floppies/amiga-os-120-workbench.adf" \
-  --out build/qualification/q3
+  --out build/qualification/q4
 ```
 
-See `ci/qualification/Q3.md` for the exact Q3 PASS criteria and verdict format.
+See `ci/qualification/Q4.md` for the exact Q4 PASS criteria, deterministic DOS fixture and verdict format.
 
 ## Harness rules
 
@@ -47,22 +49,21 @@ version. Inspect the full output, screenshot when available, and resolved emulat
 configuration alongside the automated assertions. The bounded run is terminated
 by the host after observation; emulator termination itself is not a guest return code.
 
-The qualified tools use a minimal CLI startup instead of libnix's default automatic
-library initialization, which attempts to open `utility.library` before `main`.
-Only `dos.library` version 0 is opened. `-lnix13` supplies integer division/modulo
-helpers, not startup or a replacement system library; the linked helpers use 68000
-integer instructions. The archive name is not compatibility evidence: the actual
-executable must pass on the complete AmigaOS 1.2 system.
+Argument-free qualified tools use `src/common/start_cli.S` + `start_cli.c`. Q4 adds
+`start_cli_args.S` + `start_cli_args.c` for tools needing `argc/argv`; it receives
+the classic AmigaDOS D0/A0 command line and performs bounded local tokenization
+without `ReadArgs()`, `utility.library`, libnix automatic startup or a C library.
+Both startup paths open only `dos.library` version 0 before entering the tool.
+
+`-lnix13` supplies integer division/modulo helpers, not startup or a replacement
+system library; the linked helpers use 68000 integer instructions. The archive name
+is not compatibility evidence: the actual executable must pass on the complete
+AmigaOS 1.2 system.
 
 ## Previous batches
 
-Q1 command:
+- Q1 — `Info`, `Mem`, `Tasks`: PASS on real AmigaOS 1.2.
+- Q2 — `Ports`, `Libs`, `Devices`: PASS on real AmigaOS 1.2.
+- Q3 — `Resources`, `Residents`: PASS on real AmigaOS 1.2; M1 complete.
 
-```sh
-bash ci/qualification/build-q1.sh && python3 ci/qualification/run-q1.py \
-  --rom "$HOME/Documents/FS-UAE/Kickstarts/amiga-os-120.rom" \
-  --workbench "$HOME/Documents/FS-UAE/Floppies/amiga-os-120-workbench.adf" \
-  --out build/qualification/q1-new
-```
-
-Q2 is documented in `ci/qualification/Q2.md`; its real-classic verdict is PASS.
+The individual batch documents under `ci/qualification/` retain their exact criteria and evidence summaries.
