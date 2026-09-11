@@ -26,8 +26,8 @@ static LONG parse_loops(const char *s, ULONG *out)
 
 static ULONG stamp_ticks(const struct DateStamp *ds)
 {
-    return (ULONG)ds->ds_Days * 24UL * 60UL * 50UL +
-           (ULONG)ds->ds_Minute * 60UL * 50UL +
+    return (ULONG)ds->ds_Days * 24UL * 60UL * (ULONG)TICKS_PER_SECOND +
+           (ULONG)ds->ds_Minute * 60UL * (ULONG)TICKS_PER_SECOND +
            (ULONG)ds->ds_Tick;
 }
 
