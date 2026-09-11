@@ -49,31 +49,39 @@ def main():
 
     private = Path(tempfile.mkdtemp(prefix='amiinternals-q4-argprobe-', dir='/tmp'))
     disk = private / 'workbench.adf'
+    host_evidence = private / 'evidence'
+    host_evidence.mkdir()
     shutil.copyfile(wb, disk)
     command(xdf, disk, 'makedir', 'Q4')
     command(xdf, disk, 'write', binary, 'Q4/Q4ArgProbe')
 
-    # Stage the test so the evidence says exactly how far AmigaDOS got:
-    #   pre.txt       Startup-Sequence reached the probe.
-    #   returned1.txt An unredirected invocation returned normally.
-    #   output.txt    A second, redirected invocation reached main and wrote output.
-    #   returned2.txt The redirected invocation returned normally.
+    # Runtime evidence is written to a host-directory drive (Q4E:) rather than
+    # back into the boot floppy.  This removes ADF cache/flush ambiguity: each
+    # marker becomes visible to the host as soon as AmigaDOS closes the file.
     sequence = out / 'startup-sequence'
     sequence.write_text(
         'FailAt 1\n'
         'Echo "AmigaOS 1.2 Q4 argument startup probe"\n'
-        'Echo >SYS:Q4/pre.txt "PRE"\n'
+        'Echo >Q4E:pre.txt "PRE"\n'
         'Echo "Q4ArgProbe stage 1: direct console"\n'
         'SYS:Q4/Q4ArgProbe Alpha "Beta Gamma"\n'
-        'Echo >SYS:Q4/returned1.txt "RETURNED1"\n'
+        'Echo >Q4E:returned1.txt "RETURNED1"\n'
         'Echo "Q4ArgProbe stage 2: redirected"\n'
-        'SYS:Q4/Q4ArgProbe Alpha "Beta Gamma" >SYS:Q4/output.txt\n'
-        'Echo >SYS:Q4/returned2.txt "RETURNED2"\n'
-        'Type SYS:Q4/output.txt\n'
+        'SYS:Q4/Q4ArgProbe Alpha "Beta Gamma" >Q4E:output.txt\n'
+        'Echo >Q4E:returned2.txt "RETURNED2"\n'
+        'Type Q4E:output.txt\n'
         'Echo "Q4 argument startup probe returned normally"\n'
     )
     command(xdf, disk, 'delete', 's/startup-sequence')
     command(xdf, disk, 'write', sequence, 's/startup-sequence')
+
+    # Prove before booting that the exact staged Startup-Sequence is present on
+    # the private test disk.  Keep the read-back in the qualification evidence.
+    readback = command(xdf, disk, 'type', 's/startup-sequence')
+    (out / 'startup-sequence-readback').write_bytes(readback)
+    expected_sequence = sequence.read_bytes()
+    if readback.replace(b'\r\n', b'\n').replace(b'\r', b'\n') != expected_sequence.replace(b'\r\n', b'\n').replace(b'\r', b'\n'):
+        raise SystemExit('BLOCKED: staged Startup-Sequence read-back differs from requested probe')
 
     config = out / 'session.fs-uae'
     config.write_text(
@@ -92,6 +100,8 @@ def main():
         f'kickstarts_dir = {rom.parent}\n'
         f'floppy_drive_0 = {disk}\n'
         'writable_floppy_images = 1\n'
+        f'hard_drive_0 = {host_evidence}\n'
+        'hard_drive_0_label = Q4E\n'
         f'base_dir = {private}\n'
         f'logs_dir = {out / "logs"}\n'
         'fullscreen = 0\n'
@@ -111,6 +121,8 @@ def main():
         'binary_sha256': sha256(binary),
         'invocation': 'SYS:Q4/Q4ArgProbe Alpha "Beta Gamma"',
         'runtime_seconds': args.seconds,
+        'evidence_volume': 'Q4E:',
+        'startup_sequence_readback_sha256': sha256(out / 'startup-sequence-readback'),
         'stages': ['pre.txt', 'returned1.txt', 'output.txt', 'returned2.txt'],
     }
     (out / 'metadata.json').write_text(json.dumps(evidence, indent=2) + '\n')
@@ -118,7 +130,14 @@ def main():
     with (out / 'fs-uae.log').open('wb') as log:
         proc = subprocess.Popen(['fs-uae', str(config)], stdout=log, stderr=subprocess.STDOUT)
         try:
-            time.sleep(args.seconds)
+            deadline = time.time() + args.seconds
+            # Stop early after a complete run; otherwise retain the full timeout
+            # for a hung stage.  The evidence directory is host-visible.
+            while time.time() < deadline:
+                if (host_evidence / 'returned2.txt').exists():
+                    time.sleep(1)
+                    break
+                time.sleep(1)
         finally:
             proc.terminate()
             try:
@@ -129,17 +148,16 @@ def main():
 
     stage_names = ('pre.txt', 'returned1.txt', 'output.txt', 'returned2.txt')
     for name in stage_names:
-        try:
-            command(xdf, disk, 'read', 'Q4/' + name, out / name)
-        except subprocess.CalledProcessError:
-            pass
+        source = host_evidence / name
+        if source.exists():
+            shutil.copyfile(source, out / name)
 
     stages = {name: (out / name).exists() for name in stage_names}
     evidence['stage_results'] = stages
     (out / 'metadata.json').write_text(json.dumps(evidence, indent=2) + '\n')
 
     if not stages['pre.txt']:
-        verdict = 'FAIL: Startup-Sequence did not reach Q4ArgProbe'
+        verdict = 'FAIL: Startup-Sequence did not create the host-visible pre marker'
     elif not stages['returned1.txt']:
         verdict = 'FAIL: Q4ArgProbe direct invocation did not return; failure is inside program/startup, before redirection is relevant'
     elif not stages['output.txt']:
