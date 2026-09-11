@@ -4,7 +4,7 @@
 
 Goal: establish the compatibility contract and repository architecture.
 
-- [x] Define AmigaOS / Kickstart 1.2 minimum
+- [x] Define AmigaOS 1.2 minimum (Kickstart 1.2 + matching Workbench/AmigaDOS 1.2 environment)
 - [x] Define Motorola 68000 minimum
 - [x] Establish short utility naming
 - [x] Establish read-only-first philosophy
@@ -14,7 +14,7 @@ Goal: establish the compatibility contract and repository architecture.
 - [x] Add common compatibility layer
 - [x] Produce first native 1.2-targeted binary
 
-Native Bebbo/m68k-amigaos-gcc builds and FS-UAE/AROS smoke gates are automated in CI. AROS smoke is supporting evidence only; it does not replace the hard real-classic Kickstart 1.2 qualification gate below.
+Native Bebbo/m68k-amigaos-gcc builds and FS-UAE/AROS smoke gates are automated in CI. AROS smoke is supporting evidence only; it does not replace the hard real-classic AmigaOS 1.2 qualification gate below.
 
 ## M1 — Core inspection
 
@@ -36,7 +36,7 @@ These establish most safe Exec-list traversal and formatting primitives used by 
 
 Version-sensitive structure access must be isolated and documented.
 
-**CI status:** complete (native 68000 build + FS-UAE/AROS smoke). Real-classic structure semantics remain part of the Kickstart 1.2 qualification gate.
+**CI status:** complete (native 68000 build + FS-UAE/AROS smoke). Real-classic structure semantics remain part of the AmigaOS 1.2 qualification gate.
 
 ## M4 — Diagnostics
 
@@ -72,12 +72,14 @@ No hardening review replaces real classic validation. In particular, version-sen
 
 ## v0.1.0 real-classic qualification
 
-**Status: next release gate.** Qualification should be performed in small batches, normally three tools at a time, with the A500-class / 68000 / Kickstart 1.2 target treated as the hard compatibility gate.
+**Status: next release gate.** Qualification should be performed in small batches, normally three tools at a time. The hard compatibility gate is the complete AmigaOS 1.2 environment: A500-class hardware profile, Motorola 68000, genuine Kickstart 1.2 ROM, and matching Workbench/AmigaDOS 1.2 system environment.
+
+Kickstart 1.2 alone is not sufficient to pass the hard gate. AROS, a newer Workbench/AmigaDOS, or another replacement system environment cannot be used as evidence for AmigaOS 1.2 qualification.
 
 Qualification must distinguish between:
 
-- **hard baseline:** A500-class / 68000 / Kickstart 1.2;
-- **forward compatibility:** Kickstart 1.3, AmigaOS 2.x, and AmigaOS 3.0/3.1;
+- **hard baseline:** A500-class / 68000 / Kickstart 1.2 + Workbench/AmigaDOS 1.2;
+- **forward compatibility:** Kickstart 1.3 + matching Workbench/AmigaDOS 1.3, AmigaOS 2.x, and AmigaOS 3.0/3.1;
 - **feature-gated behavior:** functionality inherently absent from older releases must fail gracefully rather than raising the suite-wide minimum OS version.
 
 Special qualification items include:
@@ -106,17 +108,17 @@ After the v0.1.0 catalogue has completed real-classic qualification and hardenin
 - `StartupInfo` — inspect startup/boot environment and relevant configuration state.
 - `CrashInfo` — collect read-only crash/alert diagnostic context where available.
 
-These are v0.2 candidates, not requirements for v0.1.0. The same compatibility policy applies: Motorola 68000 and Kickstart 1.2 remain the suite baseline unless a feature is inherently unavailable there, in which case it must degrade gracefully and be runtime-gated.
+These are v0.2 candidates, not requirements for v0.1.0. The same compatibility policy applies: Motorola 68000 and AmigaOS 1.2 remain the suite baseline unless a feature is inherently unavailable there, in which case it must degrade gracefully and be runtime-gated.
 
 ## Qualification matrix
 
 Hard compatibility gate:
 
-- A500-class / 68000 / Kickstart 1.2
+- A500-class / 68000 / Kickstart 1.2 + matching Workbench/AmigaDOS 1.2
 
 Forward-compatibility qualification:
 
-- 68000 / Kickstart 1.3
+- 68000 / Kickstart 1.3 + matching Workbench/AmigaDOS 1.3
 - 68020+ / AmigaOS 2.x
 - 68020+ / AmigaOS 3.0/3.1
 - Later classic AmigaOS releases where practical
