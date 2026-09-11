@@ -10,6 +10,7 @@
 #define BOOTBLOCK_SIZE 1024
 
 static UBYTE bootblock[BOOTBLOCK_SIZE];
+static UBYTE verifyblock[BOOTBLOCK_SIZE];
 static struct MsgPort port;
 static struct IOStdReq io;
 
@@ -19,6 +20,16 @@ static int streq(const char *a, const char *b)
         if (*a++ != *b++) return 0;
     }
     return *a == '\0' && *b == '\0';
+}
+
+static int blocks_equal(const UBYTE *a, const UBYTE *b, ULONG length)
+{
+    ULONG i;
+
+    for (i = 0; i < length; ++i) {
+        if (a[i] != b[i]) return 0;
+    }
+    return 1;
 }
 
 static int parse_unit(const char *s, ULONG *unit)
@@ -116,10 +127,25 @@ int main(int argc, char **argv)
         ai_puts("Boot block update failed\n");
         return 5;
     }
+
+    io.io_Command = CMD_READ;
+    io.io_Data = verifyblock;
+    io.io_Length = BOOTBLOCK_SIZE;
+    io.io_Offset = 0;
+    if (DoIO((struct IORequest *)&io) != 0 || io.io_Actual != BOOTBLOCK_SIZE) {
+        teardown_io();
+        ai_puts("Boot block verification read failed\n");
+        return 5;
+    }
+    if (!blocks_equal(bootblock, verifyblock, BOOTBLOCK_SIZE)) {
+        teardown_io();
+        ai_puts("Boot block verification mismatch\n");
+        return 5;
+    }
     teardown_io();
 
-    ai_puts("Restored 1024-byte boot block to DF");
+    ai_puts("Restored and verified 1024 raw bytes to DF");
     ai_put_u32(unit);
-    ai_puts("\n");
+    ai_puts(" boot block\n");
     return 0;
 }
