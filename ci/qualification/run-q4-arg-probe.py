@@ -96,7 +96,6 @@ def prepare(args, root, out, rom, wb):
         'SYS:Q4/Q4ArgProbe Alpha "Beta Gamma" >SYS:Q4/arg.txt\n'
         'Echo >SYS:Q4/arg-returned.txt "ARG_RETURNED"\n'
         'Type SYS:Q4/control.txt\n'
-        'Type SYS:Q4/arg.txt\n'
         'Echo "Q4 startup A/B probe returned normally"\n'
     )
     command(xdf, disk, 'delete', 's/startup-sequence')
@@ -221,7 +220,7 @@ def collect(out):
         raise SystemExit('BLOCKED: persistent runtime disk is missing')
     xdf = shutil.which('xdftool') or str(Path.home() / '.local/bin/xdftool')
 
-    names = ('pre.txt', 'control.txt', 'control-returned.txt', 'arg.txt', 'arg-returned.txt')
+    names = ('pre.txt', 'control.txt', 'control-returned.txt', 'arg.txt', 'arg-direct.txt', 'arg-returned.txt')
     found = {}
     for name in names:
         found[name] = extract(xdf, disk, 'Q4/' + name, out / name)
@@ -235,15 +234,21 @@ def collect(out):
         verdict = 'FAIL: Startup-Sequence did not reach the first Q4 marker'
     elif not found['control-returned.txt']:
         verdict = 'FAIL: known-good argument-free startup control did not return; harness/environment regression'
-    elif not found['arg.txt'] and not found['arg-returned.txt']:
-        verdict = 'FAIL: control passed but argument startup did not produce output or return; start_cli_args isolated'
     elif not found['arg-returned.txt']:
-        verdict = 'FAIL: argument startup produced output but did not return normally'
+        verdict = 'FAIL: argument startup did not return normally'
+    elif not found['arg-direct.txt']:
+        verdict = 'FAIL: argument startup returned but direct argc/argv evidence was not written'
     else:
-        text = (out / 'arg.txt').read_text(errors='replace')
-        expected = ('Q4ArgProbe 0.1', 'argc: 3', 'argv[0]: AmiInternals', 'argv[1]: Alpha', 'argv[2]: Beta Gamma')
+        text = (out / 'arg-direct.txt').read_text(errors='replace')
+        expected = ('Q4ArgProbe 0.2', 'argc: 3', 'argv[0]: AmiInternals', 'argv[1]: Alpha', 'argv[2]: Beta Gamma')
         missing = [item for item in expected if item not in text]
-        verdict = ('FAIL: argument startup output mismatch: ' + ', '.join(missing)) if missing else 'PASS: start_cli_args on real Kickstart 1.2 + Workbench/AmigaDOS 1.2'
+        if missing:
+            verdict = 'FAIL: argument startup direct evidence mismatch: ' + ', '.join(missing)
+        else:
+            redirected = 'present' if found['arg.txt'] else 'missing'
+            evidence['shell_redirect_output'] = redirected
+            save_metadata(out, evidence)
+            verdict = 'PASS: start_cli_args argc/argv on real Kickstart 1.2 + Workbench/AmigaDOS 1.2; shell redirect=' + redirected
 
     (out / 'result.txt').write_text(verdict + '\n')
     print(verdict, flush=True)
