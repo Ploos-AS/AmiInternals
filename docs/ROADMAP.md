@@ -62,7 +62,30 @@ ARexx support is optional at runtime and must not raise the minimum OS requireme
 
 **CI status:** complete (native 68000 build + FS-UAE/AROS smoke). `RexxPorts` and `RexxProbe` observe public Exec message ports and do not by themselves prove ARexx capability. `RexxSend` must degrade gracefully when `rexxsyslib.library` is unavailable; a successful live ARexx exchange still requires real AmigaOS 2.x+ qualification with ARexx/RexxMast active.
 
-**v0.1.0 implementation status:** complete. The full M1–M6 catalogue contains 47 tools and is covered by the automated native 68000 build and FS-UAE/AROS smoke gates. This does not constitute the hard Kickstart 1.2 real-classic qualification required before release.
+## v0.1.0 hardening
+
+**Status: complete.** The M1–M6 source review and defensive-hardening pass is complete. Changes include bounded Exec/DOS list traversal, safer snapshots of volatile system state, explicit truncation/error reporting, output-write checking, stronger disk/boot safety handling, and corrected ARexx result handling. Current-head native 68000 build and full FS-UAE/AROS Gate 1–12 regression are green after the M6 hardening changes.
+
+No hardening review replaces real classic validation. In particular, version-sensitive ExecBase/task/vector semantics, classic DOS behavior, raw trackdisk I/O, and successful live ARexx exchange remain qualification work.
+
+**v0.1.0 implementation status:** complete. The full M1–M6 catalogue contains 47 tools and is covered by the automated native 68000 build and FS-UAE/AROS smoke gates. Hardening is also complete. The remaining release blocker is the real-classic qualification matrix below.
+
+## v0.1.0 real-classic qualification
+
+**Status: next release gate.** Qualification should be performed in small batches, normally three tools at a time, with the A500-class / 68000 / Kickstart 1.2 target treated as the hard compatibility gate.
+
+Qualification must distinguish between:
+
+- **hard baseline:** A500-class / 68000 / Kickstart 1.2;
+- **forward compatibility:** Kickstart 1.3, AmigaOS 2.x, and AmigaOS 3.0/3.1;
+- **feature-gated behavior:** functionality inherently absent from older releases must fail gracefully rather than raising the suite-wide minimum OS version.
+
+Special qualification items include:
+
+- M3: verify real-classic ExecBase, task, interrupt/vector and related structure semantics;
+- M4: verify timing/watch/snapshot behavior on classic DOS/Exec;
+- M5: verify classic DOS metadata behavior and manual trackdisk paths; exercise `BootRestore` only against a disposable image/floppy and confirm write-back verification;
+- M6: verify graceful ARexx absence on the 1.x baseline and a successful `RexxSend` exchange on AmigaOS 2.x+ with RexxMast active.
 
 ## v0.2 — Extended inspection candidates
 
