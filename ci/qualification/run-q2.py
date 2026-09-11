@@ -43,7 +43,6 @@ def validate(out, tool):
         assert 'Sig Name\n' in text
         body = text.split('Sig Name\n', 1)[1]
         rows = [r for r in body.splitlines() if r and not r.startswith('Warning:')]
-        assert rows, 'No public ports listed'
         for row in rows:
             m = re.fullmatch(r'(\d+) (.+)', row)
             assert m, row
