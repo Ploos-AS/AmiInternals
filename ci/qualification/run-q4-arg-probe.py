@@ -23,7 +23,11 @@ def main():
     p.add_argument('--rom', type=Path, required=True)
     p.add_argument('--workbench', type=Path, required=True)
     p.add_argument('--out', type=Path, required=True)
-    p.add_argument('--seconds', type=int, default=40)
+    # A real-speed A500 booting Workbench 1.2 from floppy can legitimately take
+    # longer than 40 seconds.  Keep this comfortably above the 65-second Q1-Q4
+    # qualification baseline so the probe is not killed before Startup-Sequence
+    # reaches it on a loaded host.
+    p.add_argument('--seconds', type=int, default=90)
     args = p.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -100,6 +104,7 @@ def main():
         'workbench_sha256': sha256(wb),
         'binary_sha256': sha256(binary),
         'invocation': 'SYS:Q4/Q4ArgProbe Alpha "Beta Gamma"',
+        'runtime_seconds': args.seconds,
     }
     (out / 'metadata.json').write_text(json.dumps(evidence, indent=2) + '\n')
 
