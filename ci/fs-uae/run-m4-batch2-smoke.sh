@@ -16,7 +16,8 @@ rm -rf "$root_extract"
 mkdir -p "$root_extract"
 7z x -y -o"$root_extract" "$iso" >/dev/null
 
-startup="$(find "$root_extract" -type f -ipath '*/s/startup-sequence' -print -quit)"
+# Use the ISO root system, never the nested Emergency-Boot environment.
+startup="$(find "$root_extract" -maxdepth 2 -type f -ipath '*/s/startup-sequence' -print -quit)"
 [[ -n "$startup" ]] || { echo 'ERROR: missing Startup-Sequence' >&2; exit 1; }
 aros_root="$(dirname "$(dirname "$startup")")"
 tool_dir="$aros_root/AmiInternalsTest"

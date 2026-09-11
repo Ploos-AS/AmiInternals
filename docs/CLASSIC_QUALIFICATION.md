@@ -28,7 +28,7 @@ A batch is not considered release-qualified until the full AmigaOS 1.2 hard gate
 
 # Q1 — M1 batch 1: Info, Mem, Tasks
 
-Status: **READY FOR LOCAL QUALIFICATION**
+Status: **PASS — real AmigaOS 1.2 qualification completed**
 
 Target commit: record the current `main` SHA immediately before building and keep that SHA with the evidence.
 
@@ -160,3 +160,21 @@ If any tool fails, stop the batch, preserve the exact failing output/state, and 
 ## After Q1 passes
 
 The next batch is M1 batch 2: `Ports`, `Libs`, `Devices`. It will focus on safe classic Exec public-list traversal and snapshot semantics.
+
+## Q1 / M1 batch 1 evidence (2026-09-11)
+
+The first batch was run sequentially from commit `25c24b856296d22872d3675c2ca9e85dcbe09201` after the initial pre-`main` startup failure was fixed with a minimal 1.2 CLI startup. Each tool used a fresh visible FS-UAE session and the exact host binary copied to a private writable copy of the local Workbench disk. The guest returned RC 0, then the observation command recorded DOS 33.124. No Guru, hang, requester storm, or corrupted output occurred.
+
+Machine profile: FS-UAE 3.2.35, A500, OCS/PAL, Motorola 68000, real CPU speed, 512 KiB Chip RAM, 0 Fast/Slow RAM, FPU disabled, JIT disabled. FS-UAE logs report `KS ROM v1.2 (A500,A1000,A2000) rev 33.180 (256k) [315093-01]` and `CPU=68000, FPU=0, MMU=0, JIT=0`.
+
+ROM: `/home/pgo/Documents/FS-UAE/Kickstarts/amiga-os-120.rom`, 262155 bytes, SHA-256 `781a36914b49642ab14b5a6f1e7263c7fc2dcbaba3c1fc141a163fd5299b976d`; identified as genuine Kickstart 1.2 revision 33.180 (decrypted SHA-1 `11f9e62cf299f72184835b7b2a70a16333fc0d88`, FS-UAE CRC32 `a6ce1636`). Matching system disk: local Workbench/AmigaDOS 1.2 V33.56 `amiga-os-120-workbench.adf`, SHA-256 `1035a9a317fbbf0056848a25397f245967d7a8f1bc5079b02a018f410899bdf0`.
+
+| Tool | SHA-256 | Result |
+|---|---|---|
+| Info | `ad549e74b6de1e6a1f3e433750d389f7d7659212dc27a785912a50f097309c29` | PASS — real Kickstart 1.2 |
+| Mem | `4891d9c7ee0fb4107421307509e4238110d0e9ba3db697214aac76bfd87a8a62` | PASS — real Kickstart 1.2 |
+| Tasks | `770a29124ae40684e78bf26d5f82e2f319d9338b0a181b1bd0ab9ca01a8e2afa` | PASS — real Kickstart 1.2 |
+
+Q1/M1 batch 1: **PASS — real Kickstart 1.2 + matching Workbench/AmigaDOS 1.2**.
+
+Evidence is retained under `build/qualification/q1/final/` (metadata, full captured output, status/return output, FS-UAE logs/configuration and screenshots). This is a local ignored runtime area; no ROM or system disk is committed. Native Q1 build/static gates passed via `ci/qualification/build-q1.sh`. The corrected existing AROS smoke/regression scripts all returned zero and all reported tool statuses PASS; those results remain supporting evidence only and are not used for the AmigaOS 1.2 verdict.
