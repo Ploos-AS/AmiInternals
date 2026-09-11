@@ -47,15 +47,23 @@ fs_rc=$?
 set -e
 
 check_rc0() {
-  local key="$1" title="$2" marker="$3"
+  local key="$1" title="$2" marker="$3" marker2="${4:-}"
   local out="$aros_root/m5b2-$key.txt" rcfile="$aros_root/m5b2-$key-rc.txt" after="$aros_root/m5b2-after-$key.txt" rc
   [[ -f "$out" && -f "$rcfile" && -f "$after" ]] || { echo FAIL; return; }
   rc="$(tr -d '\r\n ' < "$rcfile")"
-  if [[ "$rc" == 0 ]] && grep -q "$title 0.1" "$out" && grep -q 'AmiInternals - Ploos AS' "$out" && grep -q "$marker" "$out"; then echo PASS; else echo FAIL; fi
+  if [[ "$rc" == 0 ]] \
+    && grep -q "$title 0.1" "$out" \
+    && grep -q 'AmiInternals - Ploos AS' "$out" \
+    && grep -q "$marker" "$out" \
+    && { [[ -z "$marker2" ]] || grep -q "$marker2" "$out"; }; then
+    echo PASS
+  else
+    echo FAIL
+  fi
 }
 
 trackinfo_status=$(check_rc0 trackinfo TrackInfo 'Geometry')
-floppytest_status=$(check_rc0 floppytest FloppyTest 'DOSReadOnlyProbe PASS')
+floppytest_status=$(check_rc0 floppytest FloppyTest 'DOSReadOnlyProbe PASS' 'SectorReadTest NOT PERFORMED')
 diskcheck_status=$(check_rc0 diskcheck DiskCheck 'Status BASIC_CHECK_PASS')
 status=FAIL
 if [[ "$trackinfo_status" == PASS && "$floppytest_status" == PASS && "$diskcheck_status" == PASS ]]; then status=PASS; fi
