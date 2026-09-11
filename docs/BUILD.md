@@ -22,4 +22,8 @@ This AROS/FS-UAE gate is an **initial runtime qualification**. It proves that th
 
 The project minimum remains Kickstart / AmigaOS 1.2 on a Motorola 68000. Final compatibility qualification will be performed locally against the real 1.2 environment, preferably in batches after several utilities are ready. The same local pass should also cover selected later AmigaOS releases to verify forward compatibility.
 
-The commonly documented Bebbo GCC `-mcrt=nix13` startup option targets Kickstart 1.3. AmiInternals therefore does not use that option as evidence for 1.2 compatibility. If the default no-ixemul startup proves incompatible with 1.2, the project will provide a minimal 1.2-compatible startup path rather than raising the minimum OS version.
+The default no-ixemul startup failed the first real AmigaOS 1.2 run before `Info` reached `main`, with `utility.library failed to load`. `Info`, `Mem`, and `Tasks` now use the minimal argument-free CLI startup in `src/common/start_cli.S` and `src/common/start_cli.c`. It opens only `dos.library` with version 0 and returns the tool's result to the original CLI. Workbench icon launches are rejected after replying to the startup message.
+
+These three tools link with `-nostdlib -lgcc -lnix13`. The archive supplies only the integer division/modulo helpers needed for decimal output; it does not provide the startup. The linked helpers were inspected as 68000 integer code. Neither the archive name nor the commonly documented `-mcrt=nix13` option is evidence for 1.2 compatibility: qualification must execute the actual binary in the complete real AmigaOS 1.2 environment. Other tools retain their existing runtime pending their own qualification.
+
+See `ci/qualification/README.md` for the local Q1 build and visible FS-UAE harness. It never downloads ROM or Workbench media.

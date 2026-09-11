@@ -5,6 +5,7 @@ LDFLAGS ?= -m68000 -noixemul
 
 BUILD_DIR := build
 COMMON_OBJS := $(BUILD_DIR)/common/compat.o $(BUILD_DIR)/common/output.o
+Q1_START_OBJS := $(BUILD_DIR)/common/start_cli_entry.o $(BUILD_DIR)/common/start_cli.o
 
 INFO_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/info/main.o
 MEM_OBJS := $(COMMON_OBJS) $(BUILD_DIR)/mem/main.o
@@ -114,12 +115,12 @@ rexxports: $(BUILD_DIR)/RexxPorts
 rexxsend: $(BUILD_DIR)/RexxSend
 rexxprobe: $(BUILD_DIR)/RexxProbe
 
-$(BUILD_DIR)/Info: $(INFO_OBJS)
-	$(CC) $(LDFLAGS) -o $@ $^
-$(BUILD_DIR)/Mem: $(MEM_OBJS)
-	$(CC) $(LDFLAGS) -o $@ $^
-$(BUILD_DIR)/Tasks: $(TASKS_OBJS)
-	$(CC) $(LDFLAGS) -o $@ $^
+$(BUILD_DIR)/Info: $(Q1_START_OBJS) $(INFO_OBJS)
+	$(CC) $(LDFLAGS) -nostdlib -o $@ $^ -lgcc -lnix13
+$(BUILD_DIR)/Mem: $(Q1_START_OBJS) $(MEM_OBJS)
+	$(CC) $(LDFLAGS) -nostdlib -o $@ $^ -lgcc -lnix13
+$(BUILD_DIR)/Tasks: $(Q1_START_OBJS) $(TASKS_OBJS)
+	$(CC) $(LDFLAGS) -nostdlib -o $@ $^ -lgcc -lnix13
 $(BUILD_DIR)/Libs: $(LIBS_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 $(BUILD_DIR)/Ports: $(PORTS_OBJS)
@@ -208,6 +209,10 @@ $(BUILD_DIR)/RexxSend: $(REXXSEND_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 $(BUILD_DIR)/RexxProbe: $(REXXPROBE_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
+
+$(BUILD_DIR)/common/start_cli_entry.o: src/common/start_cli.S
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/common/%.o: src/common/%.c include/ai_compat.h
 	@mkdir -p $(dir $@)

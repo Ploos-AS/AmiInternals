@@ -30,12 +30,19 @@ timeout 30s docker run --rm "$IMAGE" m68k-amigaos-gcc --version | tee "$OUT_DIR/
 compile_tool() {
   local tool="$1"
   local source="$2"
+  local startup=() runtime=()
+  case "$tool" in
+    Info|Mem|Tasks)
+      startup=(src/common/start_cli.S src/common/start_cli.c)
+      runtime=(-nostdlib -lgcc -lnix13)
+      ;;
+  esac
   echo "STEP=native-compile-$tool"
   rm -f "build/$tool"
   set +e
   timeout "${BUILD_TIMEOUT}s" docker run --rm -v "$PWD:/work" -w /work "$IMAGE" \
     m68k-amigaos-gcc -Iinclude -Os -Wall -Wextra -Werror -m68000 -fomit-frame-pointer -noixemul \
-    -o "build/$tool" src/common/compat.c src/common/output.c "$source" -noixemul
+    -o "build/$tool" "${startup[@]}" src/common/compat.c src/common/output.c "$source" -noixemul "${runtime[@]}"
   rc=$?
   set -e
   if [[ $rc -ne 0 ]]; then
