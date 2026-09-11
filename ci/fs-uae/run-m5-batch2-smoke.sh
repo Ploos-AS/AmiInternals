@@ -55,7 +55,7 @@ check_rc0() {
 }
 
 trackinfo_status=$(check_rc0 trackinfo TrackInfo 'Geometry')
-floppytest_status=$(check_rc0 floppytest FloppyTest 'ReadOnlyTest PASS')
+floppytest_status=$(check_rc0 floppytest FloppyTest 'DOSReadOnlyProbe PASS')
 diskcheck_status=$(check_rc0 diskcheck DiskCheck 'Status BASIC_CHECK_PASS')
 status=FAIL
 if [[ "$trackinfo_status" == PASS && "$floppytest_status" == PASS && "$diskcheck_status" == PASS ]]; then status=PASS; fi
