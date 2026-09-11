@@ -124,7 +124,7 @@ int main(int argc, char **argv)
         ai_puts("Cannot create RexxMsg\n");
         return 5;
     }
-    rxmsg->rm_Action = RXCOMM;
+    rxmsg->rm_Action = RXCOMM | RXFF_RESULT;
     rxmsg->rm_Args[0] = rx_create_argstring((STRPTR)argv[2], text_len(argv[2]));
     if (rxmsg->rm_Args[0] == 0) {
         rx_delete_msg(rxmsg);
@@ -161,12 +161,20 @@ int main(int argc, char **argv)
     ai_put_s32(rc);
     ai_puts("\n");
     if (reply->rm_Result2 != 0) {
-        ai_puts("Result ");
-        ai_puts((const char *)reply->rm_Result2);
-        ai_puts("\n");
+        if (rc == 0) {
+            ai_puts("Result ");
+            ai_puts((const char *)reply->rm_Result2);
+            ai_puts("\n");
+        } else {
+            ai_puts("Secondary ");
+            ai_put_s32(reply->rm_Result2);
+            ai_puts("\n");
+        }
     }
 
     rx_delete_argstring(reply->rm_Args[0]);
+    if (rc == 0 && reply->rm_Result2 != 0)
+        rx_delete_argstring((STRPTR)reply->rm_Result2);
     rx_delete_msg(reply);
     free_reply_port();
     CloseLibrary(rexx_base);
