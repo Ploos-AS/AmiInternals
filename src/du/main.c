@@ -5,6 +5,7 @@
 #include "ai_compat.h"
 
 #define MAX_DEPTH 16
+#define MAX_ENTRIES_PER_DIR 1024
 #define PATH_LEN 256
 
 /*
@@ -63,6 +64,7 @@ static void scan_dir(const char *path, int depth)
     BPTR lock;
     struct FileInfoBlock *fib;
     LONG ioerr;
+    ULONG entries = 0;
 
     if (depth > MAX_DEPTH) {
         ++error_count;
@@ -90,10 +92,12 @@ static void scan_dir(const char *path, int depth)
     }
 
     ++dir_count;
-    while (ExNext(lock, fib) != 0) {
+    while (entries < MAX_ENTRIES_PER_DIR && ExNext(lock, fib) != 0) {
         char *child = path_slots[depth];
+        const char *name = (const char *)fib->fib_FileName;
 
-        if (!append_name(child, path, fib->fib_FileName)) {
+        ++entries;
+        if (!append_name(child, path, name)) {
             ++error_count;
             continue;
         }
@@ -108,10 +112,14 @@ static void scan_dir(const char *path, int depth)
         }
     }
 
-    /* End-of-directory is normal; every other ExNext failure is an error. */
-    ioerr = IoErr();
-    if (ioerr != ERROR_NO_MORE_ENTRIES) {
+    if (entries >= MAX_ENTRIES_PER_DIR) {
         ++error_count;
+    } else {
+        /* End-of-directory is normal; every other ExNext failure is an error. */
+        ioerr = IoErr();
+        if (ioerr != ERROR_NO_MORE_ENTRIES) {
+            ++error_count;
+        }
     }
 
     UnLock(lock);
@@ -127,11 +135,14 @@ int main(int argc, char **argv)
     }
     if (argc == 2) path = argv[1];
 
-    scan_dir(path, 0);
-
+    /* Emit direct DOS output before traversal so a classic-only traversal
+     * failure can be distinguished from argc/argv startup failure. */
     ai_puts("DU 0.1\n");
     ai_puts("AmiInternals - Ploos AS\n\n");
     ai_puts("Bytes Files Dirs Errors Path\n");
+
+    scan_dir(path, 0);
+
     ai_put_u32(total_bytes);
     ai_puts(" ");
     ai_put_u32(file_count);
